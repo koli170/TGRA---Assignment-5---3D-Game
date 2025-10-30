@@ -4,6 +4,8 @@ from random import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
+import numpy
+
 import math
 from math import *
 
@@ -54,6 +56,20 @@ class Vector:
             self.z * other.x - self.x * other.z,
             self.x * other.y - self.y * other.x,
         )
+
+
+class Color:
+    def __init__(self, r, g, b):
+        self.r = r
+        self.g = g
+        self.b = b
+
+
+class Material:
+    def __init__(self, diffuse=None, specular=None, shininess=None):
+        self.diffuse = Color(0.0, 0.0, 0.0) if diffuse == None else diffuse
+        self.specular = Color(0.0, 0.0, 0.0) if specular == None else specular
+        self.shininess = 1 if shininess == None else shininess
 
 
 class Cube:
@@ -382,133 +398,69 @@ class Emerald:
             glDrawArrays(GL_TRIANGLE_STRIP, i, verts_per_strip)
 
 
-class MazeCell:
-    def __init__(self, north_wall: bool, east_wall: bool, scale=5.0):
-        self.has_north_wall = north_wall
-        self.has_east_wall = east_wall
-        self.scale = scale
+class MeshModel:
+    def __init__(self):
+        self.vertex_arrays = dict()
+        # self.index_arrays = dict()
+        self.mesh_materials = dict()
+        self.materials = dict()
+        self.vertex_counts = dict()
+        self.vertex_buffer_ids = dict()
 
-        self.north_wall = Cube()
-        self.north_wall.scale(self.scale, self.scale, 0.4)
-
-        self.east_wall = Cube()
-        self.east_wall.scale(0.4, self.scale, self.scale)
-
-        self.cover = Cube()
-        self.cover.scale(self.scale, 0.1, self.scale)
-
-
-class Maze:
-    def __init__(self, rows=2, cols=2, scale=5):
-        self.rows = rows
-        self.cols = cols
-        self.scale = scale
-
-        self.floor = Cube()
-        self.floor.scale(rows * scale, 0.2, cols * scale)
-
-        self.marked_cells = [
-            [False for _ in range(self.cols + 1)] for _ in range(self.rows + 1)
+    def add_vertex(self, mesh_id, position, normal, uv=None):
+        if mesh_id not in self.vertex_arrays:
+            self.vertex_arrays[mesh_id] = []
+            self.vertex_counts[mesh_id] = 0
+        self.vertex_arrays[mesh_id] += [
+            position.x,
+            position.y,
+            position.z,
+            normal.x,
+            normal.y,
+            normal.z,
         ]
+        self.vertex_counts[mesh_id] += 1
 
-        self.generate()
+    def set_mesh_material(self, mesh_id, mat_id):
+        self.mesh_materials[mesh_id] = mat_id
 
-    def mark_cell(self, x, y):
-        if not self.marked_cells[x][y]:
-            self.marked_cells[x][y] = True
-            self.blueprint[x][y].north_wall.scale(5, 5.5, 0.4)
-            self.blueprint[x][y].east_wall.scale(0.4, 5.5, 5)
-            self.blueprint[x][y - 1].north_wall.scale(5, 5.5, 0.4)
-            self.blueprint[x - 1][y].east_wall.scale(0.4, 5.5, 5)
+    def add_material(self, mat_id, mat):
+        self.materials[mat_id] = mat
 
-    def valid_gen_steps(self, current, steps):
-        row, col = current
-        for step in steps:
-            if step == 1:
-                check_row, check_col = row + 1, col
-            elif step == 2:
-                check_row, check_col = row, col - 1
-            elif step == 3:
-                check_row, check_col = row - 1, col
-            elif step == 4:
-                check_row, check_col = row, col + 1
-            if 1 <= check_row <= self.rows and 1 <= check_col <= self.cols:
-                if not self.visited[check_row][check_col]:
-                    return step
-        return -1
+    def set_opengl_buffers(self):
+        for mesh_id in self.mesh_materials.keys():
+            self.vertex_buffer_ids[mesh_id] = glGenBuffers(1)
+            glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer_ids[mesh_id])
+            glBufferData(
+                GL_ARRAY_BUFFER,
+                numpy.array(self.vertex_arrays[mesh_id], dtype="float32"),
+                GL_STATIC_DRAW,
+            )
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-    def reset_marked(self):
-        self.marked_cells = [
-            [False for _ in range(self.cols + 1)] for _ in range(self.rows + 1)
-        ]
-        for row in range(len(self.blueprint)):
-            for col in range(len(self.blueprint[row])):
-                if row == 0:
-                    self.marked_cells[row][col] = True
-                if col == 0:
-                    self.marked_cells[row][col] = True
+    def draw(self, shader):
+        for mesh_id, mesh_material in self.mesh_materials.items():
+            material = self.materials[mesh_material]
 
-    def generate(self, rows=-1, cols=-1):
-        if rows != -1:
-            self.rows = rows
-        if cols != -1:
-            self.cols = cols
+            # bind the VBO
+            glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer_ids[mesh_id])
 
-        self.marked_cells = [
-            [False for _ in range(self.cols + 1)] for _ in range(self.rows + 1)
-        ]
+            # Enable shader attributes (position and normal)
+            # Assuming each vertex is 6 floats: pos(x,y,z) + normal(x,y,z)
+            stride = 6 * 4  # 6 floats * 4 bytes per float
 
-        self.blueprint = [
-            [MazeCell(True, True) for _ in range(self.cols + 1)]
-            for _ in range(self.rows + 1)
-        ]
+            # position attribute (location 0)
+            glEnableVertexAttribArray(0)
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
 
-        self.start = [randint(1, self.rows), randint(1, self.cols)]
-        self.end = [randint(1, self.rows), randint(1, self.cols)]
-        while self.end == self.start:
-            self.end = [randint(1, self.rows), randint(1, self.cols)]
+            # normal attribute (location 1)
+            glEnableVertexAttribArray(1)
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(12))
 
-        self.visited = [
-            [False for _ in range(self.cols + 1)] for _ in range(self.rows + 1)
-        ]
-        tile_stack = [list(self.start)]
-        self.visited[self.start[0]][self.start[1]] = True
+            # draw
+            glDrawArrays(GL_TRIANGLES, 0, self.vertex_counts[mesh_id])
 
-        # REMOVE OUTSIDE EXTRA WALLS
-        for row in range(len(self.blueprint)):
-            for col in range(len(self.blueprint[row])):
-                if row == 0:
-                    self.marked_cells[row][col] = True
-                    self.blueprint[row][col].has_north_wall = False
-                    self.blueprint[row][col].east_wall.scale(0.4, 5.5, 5)
-                if col == 0:
-                    self.marked_cells[row][col] = True
-                    self.blueprint[row][col].has_east_wall = False
-                    self.blueprint[row][col].north_wall.scale(5, 5.5, 0.4)
-
-        while tile_stack:
-            current = tile_stack[-1]
-            steps = [1, 2, 3, 4]
-            shuffle(steps)
-            step = self.valid_gen_steps(current, steps)
-
-            if step == -1 or current == list(self.end):
-                tile_stack.pop()
-                continue
-
-            row, col = current
-            if step == 1:
-                self.blueprint[row][col].has_east_wall = False
-                next_cell = [row + 1, col]
-            elif step == 2:
-                self.blueprint[row][col - 1].has_north_wall = False
-                next_cell = [row, col - 1]
-            elif step == 3:
-                self.blueprint[row - 1][col].has_east_wall = False
-                next_cell = [row - 1, col]
-            elif step == 4:
-                self.blueprint[row][col].has_north_wall = False
-                next_cell = [row, col + 1]
-
-            tile_stack.append(next_cell)
-            self.visited[next_cell[0]][next_cell[1]] = True
+            # disable
+            glDisableVertexAttribArray(0)
+            glDisableVertexAttribArray(1)
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
