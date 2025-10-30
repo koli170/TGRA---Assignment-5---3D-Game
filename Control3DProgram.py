@@ -166,60 +166,72 @@ class GraphicsProgram3D:
 
     def handle_physics(self):
         delta_time = self.clock.get_time() / 1000.0
-        player_radius = 1
+        
+
+        player_half_size = 1.0  
         gravity = -10
         found_floor = False
+        
         for object in self.objects:
+
             min_y = inf
             min_x = inf
             min_z = inf
-
             max_y = -inf
             max_x = -inf
             max_z = -inf
+            
             for vertice in object.get_vertices():
                 min_x = min(min_x, vertice[0])
                 min_y = min(min_y, vertice[1])
                 min_z = min(min_z, vertice[2])
-
                 max_x = max(max_x, vertice[0])
                 max_y = max(max_y, vertice[1])
                 max_z = max(max_z, vertice[2])
-
-            if (
-                min_x - player_radius <= self.player.x <= max_x + player_radius
-                and min_y - player_radius <= self.player.y <= max_y + player_radius
-                and min_z - player_radius <= self.player.z <= max_z + player_radius
-            ):
-                overlap_x = min(abs(self.player.x - min_x), abs(self.player.x - max_x))
-                overlap_y = min(abs(self.player.y - min_y), abs(self.player.y - max_y))
-                overlap_z = min(abs(self.player.z - min_z), abs(self.player.z - max_z))
+            
+            player_min_x = self.player.x - player_half_size
+            player_max_x = self.player.x + player_half_size
+            player_min_y = self.player.y - player_half_size
+            player_max_y = self.player.y + player_half_size
+            player_min_z = self.player.z - player_half_size
+            player_max_z = self.player.z + player_half_size
+            
+            if (player_min_x < max_x and player_max_x > min_x and
+                player_min_y < max_y and player_max_y > min_y and
+                player_min_z < max_z and player_max_z > min_z):
+                
+                overlap_x = min(player_max_x - min_x, max_x - player_min_x)
+                overlap_y = min(player_max_y - min_y, max_y - player_min_y)
+                overlap_z = min(player_max_z - min_z, max_z - player_min_z)
+                
                 if overlap_x < overlap_y and overlap_x < overlap_z:
                     # Push along X axis
                     if self.player.x < (min_x + max_x) / 2:
-                        self.player.x = min_x - player_radius
+                        self.player.x = min_x - player_half_size
                     else:
-                        self.player.x = max_x + player_radius
-
+                        self.player.x = max_x + player_half_size
+                        
                 elif overlap_y < overlap_x and overlap_y < overlap_z:
                     # Push along Y axis
                     if self.player.y < (min_y + max_y) / 2:
-                        self.player.y = min_y - player_radius
+                        self.player.y = min_y - player_half_size
                     else:
-                        self.player.y = max_y + player_radius
+                        self.player.y = max_y + player_half_size
                     if object.floor == True:
                         found_floor = True
-
+                        
                 else:
                     # Push along Z axis
                     if self.player.z < (min_z + max_z) / 2:
-                        self.player.z = min_z - player_radius
+                        self.player.z = min_z - player_half_size
                     else:
-                        self.player.z = max_z + player_radius
+                        self.player.z = max_z + player_half_size
+        
         if found_floor:
             self.touching_floor = True
         else:
             self.touching_floor = False
+            
         if self.touching_floor == False:
             self.player.y += gravity * delta_time
 
@@ -228,7 +240,6 @@ class GraphicsProgram3D:
             object.draw()
 
     def create_obj(self, map=False):
-        """Draw the scene using CubeObj for every cube instead of manual draw calls."""
 
         # Red cube
         new_cube = CubeObj(
