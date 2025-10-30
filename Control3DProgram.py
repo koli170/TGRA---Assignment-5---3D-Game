@@ -19,7 +19,6 @@ class GraphicsProgram3D:
         pygame.display.set_mode((800, 600), pygame.OPENGL | pygame.DOUBLEBUF)
         pygame.display.set_caption("Free Walk Around Cube")
 
-        # Optional: Hide and grab mouse for FPS-style control
         pygame.mouse.set_visible(True)
         pygame.event.set_grab(False)
 
@@ -88,13 +87,9 @@ class GraphicsProgram3D:
         self.shader.set_light_position(self.main_view_matrix.eye)
 
         # Basic light settings
-        self.shader.set_light_diffuse(1.0, 0.7, 0.3)
-        self.shader.set_light_specular(1.0, 0.7, 0.3)
+        self.shader.set_light_diffuse(0.5, 0.5, 0.5)
+        self.shader.set_light_specular(0.4, 0.4, 0.4)
         self.shader.set_light_ambient(0.3, 0.3, 0.3)
-        self.shader.set_material_specular(0.3, 0.3, 0.3)
-        self.shader.set_material_diffuse(0.8, 0.8, 0.8)
-        self.shader.set_material_ambient(0.2, 0.2, 0.2)
-        self.shader.set_material_shininess(50)
 
         self.model_matrix.load_identity()
         self.draw_scene()
@@ -104,7 +99,56 @@ class GraphicsProgram3D:
     def draw_scene(self, map=False):
         """Draw a static cube in the world. The camera moves freely around it."""
         self.model_matrix.push_matrix()
-        self.model_matrix.add_translation(0, 0, 0)
+        self.shader.set_material_diffuse(1, 0, 0)
+        self.model_matrix.add_translation(0, -1.2, 0)
+        self.shader.set_model_matrix(self.model_matrix.matrix)
+        self.cube.draw(self.shader)
+        self.model_matrix.pop_matrix()
+
+        self.model_matrix.push_matrix()
+        self.shader.set_material_diffuse(0.4, 0.4, 0.4)
+        self.model_matrix.add_translation(0, -2, 0)
+        self.model_matrix.add_scale(20, 0.5, 20)
+        self.shader.set_model_matrix(self.model_matrix.matrix)
+        self.cube.draw(self.shader)
+        self.model_matrix.pop_matrix()
+
+        self.model_matrix.push_matrix()
+        self.shader.set_material_diffuse(0.4, 0.4, 0.4)
+        self.model_matrix.add_translation(0, 8, 0)
+        self.model_matrix.add_scale(20, 0.5, 20)
+        self.shader.set_model_matrix(self.model_matrix.matrix)
+        self.cube.draw(self.shader)
+        self.model_matrix.pop_matrix()
+
+        self.model_matrix.push_matrix()
+        self.shader.set_material_diffuse(0.4, 0.4, 0.4)
+        self.model_matrix.add_translation(10 - 0.5, 3, 0)
+        self.model_matrix.add_scale(0.5, 10, 20)
+        self.shader.set_model_matrix(self.model_matrix.matrix)
+        self.cube.draw(self.shader)
+        self.model_matrix.pop_matrix()
+
+        self.model_matrix.push_matrix()
+        self.shader.set_material_diffuse(0.4, 0.4, 0.4)
+        self.model_matrix.add_translation(-10 + 0.5, 3, 0)
+        self.model_matrix.add_scale(0.5, 10, 20)
+        self.shader.set_model_matrix(self.model_matrix.matrix)
+        self.cube.draw(self.shader)
+        self.model_matrix.pop_matrix()
+
+        self.model_matrix.push_matrix()
+        self.shader.set_material_diffuse(0.4, 0.4, 0.4)
+        self.model_matrix.add_translation(0, 3, 10)
+        self.model_matrix.add_scale(20, 10, 0.5)
+        self.shader.set_model_matrix(self.model_matrix.matrix)
+        self.cube.draw(self.shader)
+        self.model_matrix.pop_matrix()
+
+        self.model_matrix.push_matrix()
+        self.shader.set_material_diffuse(0.4, 0.4, 0.4)
+        self.model_matrix.add_translation(0, 3, -10)
+        self.model_matrix.add_scale(20, 10, 0.5)
         self.shader.set_model_matrix(self.model_matrix.matrix)
         self.cube.draw(self.shader)
         self.model_matrix.pop_matrix()
