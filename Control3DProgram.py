@@ -36,6 +36,7 @@ class CubeObj:
         self.shader = shader
         self.floor = floor
         self.pushable = pushable
+        self.touching_floor = False
 
     def draw(self):
         self.model_matrix.push_matrix()
@@ -184,7 +185,10 @@ class GraphicsProgram3D:
         
         player_half_size = 1.0  
         gravity = -15
-        
+        for colliding_object in self.objects:
+            if colliding_object.collisions and not colliding_object.touching_floor:
+                colliding_object.position.y += gravity * delta_time
+    
         if not self.jumping:
             self.player.y += gravity * delta_time
         
@@ -261,6 +265,7 @@ class GraphicsProgram3D:
 
         for colliding_object in self.objects:
             if colliding_object.collisions:
+                found_floor_object = False
                 for object in self.objects:
                     if object == colliding_object:
                         continue
@@ -313,12 +318,16 @@ class GraphicsProgram3D:
                                 colliding_object.position.y = min_y - (colliding_max_y - colliding_min_y) / 2
                             else:
                                 colliding_object.position.y = max_y + (colliding_max_y - colliding_min_y) / 2
+                                if object.floor:
+                                    found_floor_object = True
                                 
                         else:
                             if colliding_object.position.z < (min_z + max_z) / 2:
                                 colliding_object.position.z = min_z - (colliding_max_z - colliding_min_z) / 2
                             else:
                                 colliding_object.position.z = max_z + (colliding_max_z - colliding_min_z) / 2
+                colliding_object.touching_floor = found_floor_object
+
 
     def draw_scene(self):
         for object in self.objects:
@@ -349,10 +358,10 @@ class GraphicsProgram3D:
 
         new_cube2 = CubeObj(
             Vector(0, 1, 0),
-            Vector(-4, 0, -4),
+            Vector(-4, 5, -4),
             self.shader,
             self.model_matrix,
-            scale=Vector(3, 3, 3),
+            scale=Vector(2, 2, 2),
             floor=True,
             pushable=True,
             collisions=True
