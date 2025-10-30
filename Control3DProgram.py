@@ -24,6 +24,7 @@ class CubeObj:
         collisions=False,
         scale=Vector(1, 1, 1),
         floor=False,
+        pushable=False
     ):
         self.RGB = RGB
         self.scale = scale
@@ -34,6 +35,7 @@ class CubeObj:
         self.model_matrix = model_matrix
         self.shader = shader
         self.floor = floor
+        self.pushable = pushable
 
     def draw(self):
         self.model_matrix.push_matrix()
@@ -124,6 +126,7 @@ class GraphicsProgram3D:
         self.jump_speed = 20
         self.jump_duration = 0.2
         self.time_jumped = 0
+        self.push_force = 0.2
 
         self.UP_key_down = False
         self.white_background = False
@@ -134,7 +137,6 @@ class GraphicsProgram3D:
         self.player.y = 5
 
     def update(self):
-        print(self.touching_floor)
         delta_time = self.clock.tick() / 1000.0
         self.my_clock += delta_time
 
@@ -223,7 +225,11 @@ class GraphicsProgram3D:
                     # Push along X axis
                     if self.player.x < (min_x + max_x) / 2:
                         self.player.x = min_x - player_half_size
+                        if object.pushable:
+                            object.position.x += self.push_force
                     else:
+                        if object.pushable:
+                            object.position.x -= self.push_force
                         self.player.x = max_x + player_half_size
                         
                 elif overlap_y < overlap_x and overlap_y < overlap_z:
@@ -241,11 +247,78 @@ class GraphicsProgram3D:
                 else:
                     # Push along Z axis
                     if self.player.z < (min_z + max_z) / 2:
+                        if object.pushable:
+                            object.position.z += self.push_force
                         self.player.z = min_z - player_half_size
                     else:
+                        if object.pushable:
+                            object.position.z -= self.push_force
                         self.player.z = max_z + player_half_size
         
         self.touching_floor = found_floor
+
+
+
+        for colliding_object in self.objects:
+            if colliding_object.collisions:
+                for object in self.objects:
+                    if object == colliding_object:
+                        continue
+                        
+                    min_y = inf
+                    min_x = inf
+                    min_z = inf
+                    max_y = -inf
+                    max_x = -inf
+                    max_z = -inf
+                    colliding_min_y = inf
+                    colliding_min_x = inf
+                    colliding_min_z = inf
+                    colliding_max_y = -inf
+                    colliding_max_x = -inf
+                    colliding_max_z = -inf
+                    
+                    for vertice in object.get_vertices():
+                        min_x = min(min_x, vertice[0])
+                        min_y = min(min_y, vertice[1])
+                        min_z = min(min_z, vertice[2])
+                        max_x = max(max_x, vertice[0])
+                        max_y = max(max_y, vertice[1])
+                        max_z = max(max_z, vertice[2])
+                    
+                    for vertice in colliding_object.get_vertices():
+                        colliding_min_x = min(colliding_min_x, vertice[0])
+                        colliding_min_y = min(colliding_min_y, vertice[1])
+                        colliding_min_z = min(colliding_min_z, vertice[2])
+                        colliding_max_x = max(colliding_max_x, vertice[0])
+                        colliding_max_y = max(colliding_max_y, vertice[1])
+                        colliding_max_z = max(colliding_max_z, vertice[2])
+                    
+                    if (colliding_min_x < max_x and colliding_max_x > min_x and
+                        colliding_min_y < max_y and colliding_max_y > min_y and
+                        colliding_min_z < max_z and colliding_max_z > min_z):
+                        
+                        overlap_x = min(colliding_max_x - min_x, max_x - colliding_min_x)
+                        overlap_y = min(colliding_max_y - min_y, max_y - colliding_min_y)
+                        overlap_z = min(colliding_max_z - min_z, max_z - colliding_min_z)
+                        
+                        if overlap_x < overlap_y and overlap_x < overlap_z:
+                            if colliding_object.position.x < (min_x + max_x) / 2:
+                                colliding_object.position.x = min_x - (colliding_max_x - colliding_min_x) / 2
+                            else:
+                                colliding_object.position.x = max_x + (colliding_max_x - colliding_min_x) / 2
+                                
+                        elif overlap_y < overlap_x and overlap_y < overlap_z:
+                            if colliding_object.position.y < (min_y + max_y) / 2:
+                                colliding_object.position.y = min_y - (colliding_max_y - colliding_min_y) / 2
+                            else:
+                                colliding_object.position.y = max_y + (colliding_max_y - colliding_min_y) / 2
+                                
+                        else:
+                            if colliding_object.position.z < (min_z + max_z) / 2:
+                                colliding_object.position.z = min_z - (colliding_max_z - colliding_min_z) / 2
+                            else:
+                                colliding_object.position.z = max_z + (colliding_max_z - colliding_min_z) / 2
 
     def draw_scene(self):
         for object in self.objects:
@@ -264,7 +337,7 @@ class GraphicsProgram3D:
         )
         self.objects.append(new_cube)
 
-        new_cube = CubeObj(
+        new_cube1 = CubeObj(
             Vector(1, 0, 0),
             Vector(6, 2, 0),
             self.shader,
@@ -272,7 +345,19 @@ class GraphicsProgram3D:
             scale=Vector(3, 2, 3),
             floor=True,
         )
-        self.objects.append(new_cube)
+        self.objects.append(new_cube1)
+
+        new_cube2 = CubeObj(
+            Vector(0, 1, 0),
+            Vector(-4, 0, -4),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(3, 3, 3),
+            floor=True,
+            pushable=True,
+            collisions=True
+        )
+        self.objects.append(new_cube2)
 
         # Ground
         ground = CubeObj(
