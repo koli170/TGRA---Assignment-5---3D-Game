@@ -117,7 +117,7 @@ class GraphicsProgram3D:
         self.clock = pygame.time.Clock()
         self.clock.tick()
         self.touching_floor = True
-
+        self.floor_player_touching = None
         # Movement / rotation
         self.angle = 0
         self.move_speed = 10
@@ -185,9 +185,10 @@ class GraphicsProgram3D:
         
         player_half_size = 1.0  
         gravity = -15
+        object_gravity = -5
         for colliding_object in self.objects:
-            if colliding_object.collisions and not colliding_object.touching_floor:
-                colliding_object.position.y += gravity * delta_time
+            if colliding_object.gravity:
+                colliding_object.position.y += object_gravity * delta_time
     
         if not self.jumping:
             self.player.y += gravity * delta_time
@@ -229,10 +230,10 @@ class GraphicsProgram3D:
                     # Push along X axis
                     if self.player.x < (min_x + max_x) / 2:
                         self.player.x = min_x - player_half_size
-                        if object.pushable:
+                        if object.pushable and self.floor_player_touching != object:
                             object.position.x += self.push_force
                     else:
-                        if object.pushable:
+                        if object.pushable and self.floor_player_touching != object:
                             object.position.x -= self.push_force
                         self.player.x = max_x + player_half_size
                         
@@ -247,15 +248,16 @@ class GraphicsProgram3D:
                         self.player.y = max_y + player_half_size
                         if object.floor:
                             found_floor = True
+                            self.floor_player_touching = object
                         
                 else:
                     # Push along Z axis
                     if self.player.z < (min_z + max_z) / 2:
-                        if object.pushable:
+                        if object.pushable and self.floor_player_touching != object:
                             object.position.z += self.push_force
                         self.player.z = min_z - player_half_size
                     else:
-                        if object.pushable:
+                        if object.pushable and self.floor_player_touching != object:
                             object.position.z -= self.push_force
                         self.player.z = max_z + player_half_size
         
@@ -364,7 +366,8 @@ class GraphicsProgram3D:
             scale=Vector(2, 2, 2),
             floor=True,
             pushable=True,
-            collisions=True
+            collisions=True,
+            gravity=True
         )
         self.objects.append(new_cube2)
 
