@@ -95,6 +95,7 @@ class GraphicsProgram3D:
 
         self.controlling_player = True
 
+
         # Camera setup
         self.player_view_matrix.eye = Point(0, 0, 5)
         self.player_view_matrix.look(Point(0, 0, 0))
@@ -119,6 +120,10 @@ class GraphicsProgram3D:
         self.move_speed = 10
         self.rotation_speed = 150
         self.objects = []
+        self.jumping = False
+        self.jump_speed = 20
+        self.jump_duration = 0.2
+        self.time_jumped = 0
 
         self.UP_key_down = False
         self.white_background = False
@@ -129,12 +134,19 @@ class GraphicsProgram3D:
         self.player.y = 5
 
     def update(self):
+        print(self.touching_floor)
         delta_time = self.clock.tick() / 1000.0
         self.my_clock += delta_time
 
         self.angle += pi * delta_time
         self.rot_step = self.rotation_speed * delta_time
         self.move_step = self.move_speed * delta_time
+
+        if self.jumping:
+            self.time_jumped += delta_time
+            self.player.y += self.jump_speed*delta_time
+        if self.time_jumped >= self.jump_duration and self.jumping:
+            self.jumping = False
 
         self.handle_physics()
 
@@ -167,13 +179,15 @@ class GraphicsProgram3D:
     def handle_physics(self):
         delta_time = self.clock.get_time() / 1000.0
         
-
         player_half_size = 1.0  
-        gravity = -10
+        gravity = -15
+        
+        if not self.jumping:
+            self.player.y += gravity * delta_time
+        
         found_floor = False
         
         for object in self.objects:
-
             min_y = inf
             min_x = inf
             min_z = inf
@@ -215,10 +229,13 @@ class GraphicsProgram3D:
                     # Push along Y axis
                     if self.player.y < (min_y + max_y) / 2:
                         self.player.y = min_y - player_half_size
+                        if self.jumping:
+                            self.jumping = False
+                            self.time_jumped = 0
                     else:
                         self.player.y = max_y + player_half_size
-                    if object.floor == True:
-                        found_floor = True
+                        if object.floor:
+                            found_floor = True
                         
                 else:
                     # Push along Z axis
@@ -227,13 +244,7 @@ class GraphicsProgram3D:
                     else:
                         self.player.z = max_z + player_half_size
         
-        if found_floor:
-            self.touching_floor = True
-        else:
-            self.touching_floor = False
-            
-        if self.touching_floor == False:
-            self.player.y += gravity * delta_time
+        self.touching_floor = found_floor
 
     def draw_scene(self):
         for object in self.objects:
@@ -245,6 +256,16 @@ class GraphicsProgram3D:
         new_cube = CubeObj(
             Vector(1, 0, 0),
             Vector(0, -1, 0),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(3, 2, 3),
+            floor=True,
+        )
+        self.objects.append(new_cube)
+
+        new_cube = CubeObj(
+            Vector(1, 0, 0),
+            Vector(6, 2, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(3, 2, 3),
@@ -357,7 +378,8 @@ class GraphicsProgram3D:
                             self.controlling_player = True
                         self.shader.set_view_matrix(self.main_view_matrix.get_matrix())
                     if event.key == K_SPACE and self.touching_floor:
-                        self.player.y += 5
+                        self.jumping = True
+                        self.time_jumped = 0
 
             self.update()
             self.display()
