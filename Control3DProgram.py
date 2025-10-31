@@ -158,7 +158,7 @@ class GraphicsProgram3D:
         (
             glClearColor(1.0, 1.0, 1.0, 1.0)
             if self.white_background
-            else glClearColor(0, 0, 0, 1)
+            else glClearColor(0, 0, 1, 1)
         )
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glViewport(0, 0, 800, 600)
@@ -184,6 +184,7 @@ class GraphicsProgram3D:
         delta_time = self.clock.get_time() / 1000.0
         
         player_half_size = 1.0  
+        player_half_height = 3.0
         gravity = -15
         object_gravity = -5
         for colliding_object in self.objects:
@@ -213,8 +214,8 @@ class GraphicsProgram3D:
             
             player_min_x = self.player.x - player_half_size
             player_max_x = self.player.x + player_half_size
-            player_min_y = self.player.y - player_half_size
-            player_max_y = self.player.y + player_half_size
+            player_min_y = self.player.y - player_half_height
+            player_max_y = self.player.y + player_half_height
             player_min_z = self.player.z - player_half_size
             player_max_z = self.player.z + player_half_size
             
@@ -240,12 +241,12 @@ class GraphicsProgram3D:
                 if overlap_y < overlap_x and overlap_y < overlap_z:
                     # Push along Y axis
                     if self.player.y < (min_y + max_y) / 2:
-                        self.player.y = min_y - player_half_size
+                        self.player.y = min_y - player_half_height
                         if self.jumping:
                             self.jumping = False
                             self.time_jumped = 0
                     else:
-                        self.player.y = max_y + player_half_size
+                        self.player.y = max_y + player_half_height
                         if object.floor:
                             found_floor = True
                             self.floor_player_touching = object
@@ -340,7 +341,7 @@ class GraphicsProgram3D:
         # Red cube
         new_cube = CubeObj(
             Vector(1, 0, 0),
-            Vector(0, -1, 0),
+            Vector(0, 2, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(3, 2, 3),
@@ -350,7 +351,7 @@ class GraphicsProgram3D:
 
         new_cube1 = CubeObj(
             Vector(1, 0, 0),
-            Vector(6, 2, 0),
+            Vector(6, 4, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(3, 2, 3),
@@ -385,7 +386,7 @@ class GraphicsProgram3D:
         # Ceiling
         ceiling = CubeObj(
             Vector(0.4, 0.4, 0.4),
-            Vector(0, 8, 0),
+            Vector(0, 15, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(20, 0.5, 20),
