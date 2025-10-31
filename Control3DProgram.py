@@ -127,7 +127,7 @@ class GraphicsProgram3D:
         self.jump_speed = 20
         self.jump_duration = 0.2
         self.time_jumped = 0
-        self.push_force = 0.2
+        self.push_force = 5
 
         self.UP_key_down = False
         self.white_background = False
@@ -231,13 +231,13 @@ class GraphicsProgram3D:
                     if self.player.x < (min_x + max_x) / 2:
                         self.player.x = min_x - player_half_size
                         if object.pushable and self.floor_player_touching != object:
-                            object.position.x += self.push_force
+                            object.position.x += self.push_force * delta_time
                     else:
                         if object.pushable and self.floor_player_touching != object:
-                            object.position.x -= self.push_force
+                            object.position.x -= self.push_force * delta_time
                         self.player.x = max_x + player_half_size
                         
-                elif overlap_y < overlap_x and overlap_y < overlap_z:
+                if overlap_y < overlap_x and overlap_y < overlap_z:
                     # Push along Y axis
                     if self.player.y < (min_y + max_y) / 2:
                         self.player.y = min_y - player_half_size
@@ -250,15 +250,15 @@ class GraphicsProgram3D:
                             found_floor = True
                             self.floor_player_touching = object
                         
-                else:
+                if overlap_z < overlap_x and overlap_z < overlap_y:
                     # Push along Z axis
                     if self.player.z < (min_z + max_z) / 2:
                         if object.pushable and self.floor_player_touching != object:
-                            object.position.z += self.push_force
+                            object.position.z += self.push_force * delta_time
                         self.player.z = min_z - player_half_size
                     else:
                         if object.pushable and self.floor_player_touching != object:
-                            object.position.z -= self.push_force
+                            object.position.z -= self.push_force * delta_time
                         self.player.z = max_z + player_half_size
         
         self.touching_floor = found_floor
@@ -315,7 +315,7 @@ class GraphicsProgram3D:
                             else:
                                 colliding_object.position.x = max_x + (colliding_max_x - colliding_min_x) / 2
                                 
-                        elif overlap_y < overlap_x and overlap_y < overlap_z:
+                        if overlap_y < overlap_x and overlap_y < overlap_z:
                             if colliding_object.position.y < (min_y + max_y) / 2:
                                 colliding_object.position.y = min_y - (colliding_max_y - colliding_min_y) / 2
                             else:
@@ -323,7 +323,7 @@ class GraphicsProgram3D:
                                 if object.floor:
                                     found_floor_object = True
                                 
-                        else:
+                        if overlap_z < overlap_x and overlap_z < overlap_y:
                             if colliding_object.position.z < (min_z + max_z) / 2:
                                 colliding_object.position.z = min_z - (colliding_max_z - colliding_min_z) / 2
                             else:
