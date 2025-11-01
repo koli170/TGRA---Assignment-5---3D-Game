@@ -13,7 +13,7 @@ from Base3DObjects import Vector
 from Matrices import *
 
 
-class CubeObj:
+class BaseObj:
     def __init__(
         self,
         RGB: Vector,
@@ -23,31 +23,38 @@ class CubeObj:
         gravity=False,
         collisions=False,
         scale=Vector(1, 1, 1),
-        pushable=False
+        pushable=False,
+        follow_player=False
     ):
         self.RGB = RGB
         self.scale = scale
         self.position = position
         self.gravity = gravity
         self.collisions = collisions
-        self.cube = Cube()
         self.model_matrix = model_matrix
         self.shader = shader
         self.floor = floor
         self.pushable = pushable
         self.touching_floor = False
         self.velocity = 0
+        self.follow_player = follow_player
 
-    def draw(self):
-        self.model_matrix.push_matrix()
-        self.shader.set_material_diffuse(self.RGB.x, self.RGB.y, self.RGB.z)
-        self.model_matrix.add_translation(
-            self.position.x, self.position.y, self.position.z
-        )
-        self.model_matrix.add_scale(self.scale.x, self.scale.y, self.scale.z)
-        self.shader.set_model_matrix(self.model_matrix.matrix)
-        self.cube.draw(self.shader)
-        self.model_matrix.pop_matrix()
+
+class CubeObj(BaseObj):
+    def __init__(
+        self,
+        RGB: Vector,
+        position: Vector,
+        shader,
+        model_matrix,
+        gravity=False,
+        collisions=False,
+        scale=Vector(1, 1, 1),
+        pushable=False,
+        follow_player=False
+    ):
+        super().__init__(RGB, position, shader, model_matrix, gravity, collisions, scale, pushable, follow_player)
+        self.cube = Cube()
 
     def get_vertices(self):
         """Returns the 8 corner vertices of the cube in world space."""
@@ -73,6 +80,17 @@ class CubeObj:
 
         return vertices
 
+    def draw(self):
+        self.model_matrix.push_matrix()
+        self.shader.set_material_diffuse(self.RGB.x, self.RGB.y, self.RGB.z)
+        self.model_matrix.add_translation(
+            self.position.x, self.position.y, self.position.z
+        )
+        self.model_matrix.add_scale(self.scale.x, self.scale.y, self.scale.z)
+        self.shader.set_model_matrix(self.model_matrix.matrix)
+        self.cube.draw(self.shader)
+        self.model_matrix.pop_matrix()
+
 
 class GraphicsProgram3D:
     def __init__(self):
@@ -81,8 +99,8 @@ class GraphicsProgram3D:
         pygame.display.set_mode((800, 600), pygame.OPENGL | pygame.DOUBLEBUF)
         pygame.display.set_caption("Free Walk Around Cube")
 
-        pygame.mouse.set_visible(True)
-        pygame.event.set_grab(False)
+        pygame.mouse.set_visible(False)
+        pygame.event.set_grab(True)
 
         # Setup shader and matrices
         self.shader = Shader3D()
@@ -129,6 +147,10 @@ class GraphicsProgram3D:
         self.jump_duration = 0.2
         self.time_jumped = 0
         self.push_force = 5
+        self.relative_mouse_movement = (0, 0, 0)
+        self.mouse_movement = Vector(0, 0, 0)
+        self.mouse_sens = 0.1
+
 
         self.UP_key_down = False
         self.white_background = False
@@ -367,7 +389,8 @@ class GraphicsProgram3D:
             scale=Vector(2, 2, 2),
             pushable=True,
             collisions=True,
-            gravity=True
+            gravity=True,
+            follow_player=True
         )
         self.objects.append(new_cube2)
 
@@ -446,6 +469,13 @@ class GraphicsProgram3D:
                 self.main_view_matrix.rotate_horizontal(self.rot_step)
             if keys[pygame.K_RIGHT]:
                 self.main_view_matrix.rotate_horizontal(-self.rot_step)
+            
+            if self.relative_mouse_movement != (0, 0, 0):
+                self.main_view_matrix.rotate_horizontal(-self.relative_mouse_movement[0] * self.mouse_sens)
+                
+                self.main_view_matrix.pitch(self.relative_mouse_movement[1] * self.mouse_sens)
+                
+                self.relative_mouse_movement = (0, 0, 0)
 
             if keys[pygame.K_w]:
                 self.main_view_matrix.walk(0, 0, -self.move_step)
@@ -461,6 +491,9 @@ class GraphicsProgram3D:
                 if event.type == pygame.QUIT:
                     print("Quitting!")
                     exiting = True
+                elif event.type == pygame.MOUSEMOTION:
+                    self.mouse_movement = event.pos  
+                    self.relative_mouse_movement = event.rel
                 elif event.type == pygame.KEYDOWN:
                     if event.key == K_ESCAPE:
                         print("Escaping!")
