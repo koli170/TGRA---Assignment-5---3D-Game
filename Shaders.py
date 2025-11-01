@@ -47,6 +47,13 @@ class Shader3D:
         self.normalLoc = glGetAttribLocation(self.renderingProgramID, "a_normal")
         glEnableVertexAttribArray(self.normalLoc)
 
+        self.uvLoc = glGetAttribLocation(self.renderingProgramID, "a_uv")
+        glEnableVertexAttribArray(self.uvLoc)
+
+        self.useTextureLoc = glGetUniformLocation(
+            self.renderingProgramID, "u_use_texture"
+        )
+
         self.modelMatrixLoc = glGetUniformLocation(
             self.renderingProgramID, "u_model_matrix"
         )
@@ -97,6 +104,13 @@ class Shader3D:
         )
         self.attenCheckLoc = glGetUniformLocation(
             self.renderingProgramID, "u_atten_check"
+        )
+        self.diffuseTextureLoc = glGetUniformLocation(
+            self.renderingProgramID, "u_tex01"
+        )
+        # glUniform1f(self.diffuseTextureLoc, GL_TEXTURE1)
+        self.specularTextureLoc = glGetUniformLocation(
+            self.renderingProgramID, "u_tex02"
         )
 
     def use(self):
@@ -149,14 +163,26 @@ class Shader3D:
     def set_material_shininess(self, shininess):
         glUniform1f(self.matShininessLoc, shininess)
 
+    def set_diffuse_texture(self, number):
+        glUniform1i(self.diffuseTextureLoc, number)
+
+    def set_specular_texture(self, number):
+        glUniform1i(self.specularTextureLoc, number)
+
     def set_attenuation_check(self, enabled):
         glUniform1i(self.attenCheckLoc, 1 if enabled else 0)
+
+    def set_use_texture(self, use_it):
+        glUniform1i(self.useTextureLoc, 1 if use_it else 0)
 
     def set_position_attribute(self, vertex_array):
         glVertexAttribPointer(self.positionLoc, 3, GL_FLOAT, False, 0, vertex_array)
 
     def set_normal_attribute(self, vertex_array):
         glVertexAttribPointer(self.normalLoc, 3, GL_FLOAT, False, 0, vertex_array)
+
+    def set_uv_attribute(self, vertex_array):
+        glVertexAttribPointer(self.uvLoc, 2, GL_FLOAT, False, 0, vertex_array)
 
     def set_attribute_buffers(self, vertex_buffer_id):
         glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id)

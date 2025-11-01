@@ -26,6 +26,8 @@ class CubeObj:
         collisions=False,
         scale=Vector(1, 1, 1),
         pushable=False,
+        texture=None,
+        texture_spec=None,
     ):
         self.RGB = RGB
         self.scale = scale
@@ -39,9 +41,21 @@ class CubeObj:
         self.pushable = pushable
         self.touching_floor = False
         self.velocity = 0
+        self.texture = texture
+        self.texture_spec = texture_spec
 
     def draw(self):
         self.model_matrix.push_matrix()
+        if self.texture != None:
+            self.shader.set_use_texture(True)
+            glActiveTexture(GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, self.texture)
+            self.shader.set_diffuse_texture(0)
+            glActiveTexture(GL_TEXTURE1)
+            glBindTexture(GL_TEXTURE_2D, self.texture)
+            self.shader.set_specular_texture(1)
+        else:
+            self.shader.set_use_texture(False)
         self.shader.set_material_diffuse(self.RGB.x, self.RGB.y, self.RGB.z)
         self.model_matrix.add_translation(
             self.position.x, self.position.y, self.position.z
@@ -137,10 +151,42 @@ class GraphicsProgram3D:
         self.UP_key_down = False
         self.white_background = False
 
+        self.texture_id_01 = self.load_texture(
+            "TGRA---Assignment-5---3D-Game/Textures/companioncube_uv.png"
+        )
+        self.texture_id_02 = self.load_texture(
+            "TGRA---Assignment-5---3D-Game/Textures/FNM_KingForADay.jpg"
+        )
+        self.texture_id_03 = self.load_texture(
+            "TGRA---Assignment-5---3D-Game/Textures/returnofthespacecowboy.jpg"
+        )
+
         self.create_obj()
 
         self.player = self.main_view_matrix.eye
         self.player.y = 5
+
+    def load_texture(self, path_string):
+        surface = pygame.image.load(path_string)
+        tex_string = pygame.image.tostring(surface, "RGBA", 1)
+        width = surface.get_width()
+        height = surface.get_height()
+        tex_id = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, tex_id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            width,
+            height,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            tex_string,
+        )
+        return tex_id
 
     def update(self):
         delta_time = self.clock.tick() / 1000.0
@@ -187,7 +233,7 @@ class GraphicsProgram3D:
         self.model_matrix.add_scale(1, 1, 1)
         self.model_matrix.add_rotation_y(90)
         self.shader.set_model_matrix(self.model_matrix.matrix)
-        self.mesh_shape.draw(self.shader)
+        # self.mesh_shape.draw(self.shader)
         self.model_matrix.pop_matrix()
 
         self.model_matrix.load_identity()
@@ -392,16 +438,18 @@ class GraphicsProgram3D:
         self.objects.append(new_cube)
 
         new_cube1 = CubeObj(
-            Vector(1, 0, 0),
+            Vector(1, 1, 1),
             Vector(6, 4, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(3, 2, 3),
+            texture=self.texture_id_03,
+            texture_spec=self.texture_id_03,
         )
         self.objects.append(new_cube1)
 
         new_cube2 = CubeObj(
-            Vector(0, 1, 0),
+            Vector(1, 1, 1),
             Vector(-4, 5, -4),
             self.shader,
             self.model_matrix,
@@ -409,6 +457,8 @@ class GraphicsProgram3D:
             pushable=True,
             collisions=True,
             gravity=True,
+            texture=self.texture_id_02,
+            texture_spec=self.texture_id_02,
         )
         self.objects.append(new_cube2)
 

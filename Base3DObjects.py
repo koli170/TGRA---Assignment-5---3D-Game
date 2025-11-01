@@ -222,6 +222,56 @@ class Cube:
             0.0,
             0.0,
         ]
+        self.uv_array = [
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ]
 
     def scale(self, x, y, z):
         self.position_array = [
@@ -307,6 +357,7 @@ class Cube:
 
         shader.set_position_attribute(self.position_array)
         shader.set_normal_attribute(self.normal_array)
+        shader.set_uv_attribute(self.uv_array)
 
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
         glDrawArrays(GL_TRIANGLE_FAN, 4, 4)
