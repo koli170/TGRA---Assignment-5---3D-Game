@@ -23,7 +23,6 @@ class CubeObj:
         gravity=False,
         collisions=False,
         scale=Vector(1, 1, 1),
-        floor=False,
         pushable=False
     ):
         self.RGB = RGB
@@ -37,6 +36,7 @@ class CubeObj:
         self.floor = floor
         self.pushable = pushable
         self.touching_floor = False
+        self.velocity = 0
 
     def draw(self):
         self.model_matrix.push_matrix()
@@ -124,6 +124,7 @@ class GraphicsProgram3D:
         self.rotation_speed = 150
         self.objects = []
         self.jumping = False
+        self.player_velocity = 0
         self.jump_speed = 20
         self.jump_duration = 0.2
         self.time_jumped = 0
@@ -185,14 +186,15 @@ class GraphicsProgram3D:
         
         player_half_size = 1.0  
         player_half_height = 3.0
-        gravity = -15
-        object_gravity = -5
+        gravity = -40
         for colliding_object in self.objects:
-            if colliding_object.gravity:
-                colliding_object.position.y += object_gravity * delta_time
+            if colliding_object.gravity and not colliding_object.touching_floor:
+                colliding_object.velocity = colliding_object.velocity + gravity * delta_time
+                colliding_object.position.y += colliding_object.velocity * delta_time
     
         if not self.jumping:
-            self.player.y += gravity * delta_time
+            self.player_velocity = self.player_velocity + gravity * delta_time
+            self.player.y += self.player_velocity * delta_time
         
         found_floor = False
         
@@ -247,9 +249,9 @@ class GraphicsProgram3D:
                             self.time_jumped = 0
                     else:
                         self.player.y = max_y + player_half_height
-                        if object.floor:
-                            found_floor = True
-                            self.floor_player_touching = object
+                        found_floor = True
+                        self.floor_player_touching = object
+                        self.player_velocity = 0
                         
                 if overlap_z < overlap_x and overlap_z < overlap_y:
                     # Push along Z axis
@@ -321,8 +323,8 @@ class GraphicsProgram3D:
                                 colliding_object.position.y = min_y - (colliding_max_y - colliding_min_y) / 2
                             else:
                                 colliding_object.position.y = max_y + (colliding_max_y - colliding_min_y) / 2
-                                if object.floor:
-                                    found_floor_object = True
+                                found_floor_object = True
+                                colliding_object.velocity = 0
                                 
                         if overlap_z < overlap_x and overlap_z < overlap_y:
                             if colliding_object.position.z < (min_z + max_z) / 2:
@@ -345,7 +347,6 @@ class GraphicsProgram3D:
             self.shader,
             self.model_matrix,
             scale=Vector(3, 2, 3),
-            floor=True,
         )
         self.objects.append(new_cube)
 
@@ -355,7 +356,6 @@ class GraphicsProgram3D:
             self.shader,
             self.model_matrix,
             scale=Vector(3, 2, 3),
-            floor=True,
         )
         self.objects.append(new_cube1)
 
@@ -365,7 +365,6 @@ class GraphicsProgram3D:
             self.shader,
             self.model_matrix,
             scale=Vector(2, 2, 2),
-            floor=True,
             pushable=True,
             collisions=True,
             gravity=True
@@ -379,7 +378,6 @@ class GraphicsProgram3D:
             self.shader,
             self.model_matrix,
             scale=Vector(20, 0.5, 20),
-            floor=True,
         )
         self.objects.append(ground)
 
