@@ -441,26 +441,13 @@ class MeshModel:
     def draw(self, shader):
         for mesh_id, mesh_material in self.mesh_materials.items():
             material = self.materials[mesh_material]
-
-            # bind the VBO
-            glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer_ids[mesh_id])
-
-            # Enable shader attributes (position and normal)
-            # Assuming each vertex is 6 floats: pos(x,y,z) + normal(x,y,z)
-            stride = 6 * 4  # 6 floats * 4 bytes per float
-
-            # position attribute (location 0)
-            glEnableVertexAttribArray(0)
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
-
-            # normal attribute (location 1)
-            glEnableVertexAttribArray(1)
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(12))
-
-            # draw
+            shader.set_material_diffuse(
+                material.diffuse.r, material.diffuse.g, material.diffuse.b
+            )
+            shader.set_material_specular(
+                material.specular.r, material.specular.g, material.specular.b
+            )
+            shader.set_material_shininess(material.shininess)
+            shader.set_attribute_buffers(self.vertex_buffer_ids[mesh_id])
             glDrawArrays(GL_TRIANGLES, 0, self.vertex_counts[mesh_id])
-
-            # disable
-            glDisableVertexAttribArray(0)
-            glDisableVertexAttribArray(1)
             glBindBuffer(GL_ARRAY_BUFFER, 0)
