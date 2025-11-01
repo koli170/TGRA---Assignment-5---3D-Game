@@ -15,7 +15,7 @@ from Matrices import *
 from ojb_3D_loading import *
 
 
-class BaseObj:
+class CubeObj:
     def __init__(
         self,
         RGB: Vector,
@@ -40,9 +40,22 @@ class BaseObj:
         self.pushable = pushable
         self.touching_floor = False
         self.velocity = 0
+        self.texture = texture
+        self.cube = Cube()
+        self.texture_spec = texture_spec
 
     def draw(self):
         self.model_matrix.push_matrix()
+        if self.texture != None:
+            self.shader.set_use_texture(True)
+            glActiveTexture(GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, self.texture)
+            self.shader.set_diffuse_texture(0)
+            glActiveTexture(GL_TEXTURE1)
+            glBindTexture(GL_TEXTURE_2D, self.texture)
+            self.shader.set_specular_texture(1)
+        else:
+            self.shader.set_use_texture(False)
         self.shader.set_material_diffuse(self.RGB.x, self.RGB.y, self.RGB.z)
         self.model_matrix.add_translation(
             self.position.x, self.position.y, self.position.z
@@ -75,18 +88,6 @@ class BaseObj:
             vertices.append((world_x, world_y, world_z))
 
         return vertices
-
-    def draw(self):
-        self.model_matrix.push_matrix()
-        self.shader.set_material_diffuse(self.RGB.x, self.RGB.y, self.RGB.z)
-        self.model_matrix.add_translation(
-            self.position.x, self.position.y, self.position.z
-        )
-        self.model_matrix.add_scale(self.scale.x, self.scale.y, self.scale.z)
-        self.shader.set_model_matrix(self.model_matrix.matrix)
-        self.cube.draw(self.shader)
-        self.model_matrix.pop_matrix()
-
 
 class GraphicsProgram3D:
     def __init__(self):
@@ -125,7 +126,7 @@ class GraphicsProgram3D:
         self.sphere = Sphere(8, 16)
         self.cube = Cube()
         self.mesh_shape = load_obj_file(
-            "TGRA---Assignment-5---3D-Game/MeshModelAddon/models", "combined_model.obj"
+            "MeshModelAddon/models", "combined_model.obj"
         )
 
         # Time control
@@ -154,13 +155,13 @@ class GraphicsProgram3D:
         self.white_background = False
 
         self.texture_id_01 = self.load_texture(
-            "TGRA---Assignment-5---3D-Game/Textures/companioncube_uv.png"
+            "Textures/companioncube_uv.png"
         )
         self.texture_id_02 = self.load_texture(
-            "TGRA---Assignment-5---3D-Game/Textures/FNM_KingForADay.jpg"
+            "Textures/FNM_KingForADay.jpg"
         )
         self.texture_id_03 = self.load_texture(
-            "TGRA---Assignment-5---3D-Game/Textures/returnofthespacecowboy.jpg"
+            "Textures/returnofthespacecowboy.jpg"
         )
 
         self.create_obj()
@@ -458,7 +459,9 @@ class GraphicsProgram3D:
             scale=Vector(2, 2, 2),
             pushable=True,
             collisions=True,
-            gravity=True
+            gravity=True,
+            texture=self.texture_id_02,
+            texture_spec=self.texture_id_02,
         )
         self.objects.append(new_cube2)
 
