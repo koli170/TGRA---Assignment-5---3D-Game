@@ -54,8 +54,10 @@ class Vector:
         return Vector(
             self.y * other.z - self.z * other.y,
             self.z * other.x - self.x * other.z,
-            self.x * other.y - self.y * other.x,
-        )
+            self.x * other.y - self.y * other.x,)
+        
+    def __str__(self):
+        return f"({self.x}, {self.y}, {self.z})"
 
 
 class Color:
