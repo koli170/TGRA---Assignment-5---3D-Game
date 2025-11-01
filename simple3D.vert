@@ -1,5 +1,6 @@
 attribute vec3 a_position;
 attribute vec3 a_normal;
+attribute vec2 a_uv;
 
 uniform mat4 u_model_matrix;
 uniform mat4 u_projection_matrix;
@@ -12,11 +13,15 @@ uniform int u_num_lights;
 varying vec4 v_normal;
 varying vec4 v_position;
 varying vec4 v_view;
+varying vec2 v_uv;
 
 void main(void)
 {
 	vec4 position = vec4(a_position.x, a_position.y, a_position.z, 1.0);
 	vec4 normal = vec4(a_normal.x, a_normal.y, a_normal.z, 0.0);
+
+	// UV coords sent into per-pixel use
+	v_uv = a_uv;
 
 	position = u_model_matrix * position;
 	v_normal = normalize(u_model_matrix * normal);

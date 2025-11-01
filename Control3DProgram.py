@@ -12,6 +12,8 @@ from Shaders import *
 from Base3DObjects import Vector
 from Matrices import *
 
+from ojb_3D_loading import *
+
 
 class BaseObj:
     def __init__(
@@ -24,7 +26,8 @@ class BaseObj:
         collisions=False,
         scale=Vector(1, 1, 1),
         pushable=False,
-        follow_player=False
+        texture=None,
+        texture_spec=None,
     ):
         self.RGB = RGB
         self.scale = scale
@@ -37,24 +40,17 @@ class BaseObj:
         self.pushable = pushable
         self.touching_floor = False
         self.velocity = 0
-        self.follow_player = follow_player
 
-
-class CubeObj(BaseObj):
-    def __init__(
-        self,
-        RGB: Vector,
-        position: Vector,
-        shader,
-        model_matrix,
-        gravity=False,
-        collisions=False,
-        scale=Vector(1, 1, 1),
-        pushable=False,
-        follow_player=False
-    ):
-        super().__init__(RGB, position, shader, model_matrix, gravity, collisions, scale, pushable, follow_player)
-        self.cube = Cube()
+    def draw(self):
+        self.model_matrix.push_matrix()
+        self.shader.set_material_diffuse(self.RGB.x, self.RGB.y, self.RGB.z)
+        self.model_matrix.add_translation(
+            self.position.x, self.position.y, self.position.z
+        )
+        self.model_matrix.add_scale(self.scale.x, self.scale.y, self.scale.z)
+        self.shader.set_model_matrix(self.model_matrix.matrix)
+        self.cube.draw(self.shader)
+        self.model_matrix.pop_matrix()
 
     def get_vertices(self):
         """Returns the 8 corner vertices of the cube in world space."""
@@ -97,7 +93,7 @@ class GraphicsProgram3D:
 
         pygame.init()
         pygame.display.set_mode((800, 600), pygame.OPENGL | pygame.DOUBLEBUF)
-        pygame.display.set_caption("Free Walk Around Cube")
+        pygame.display.set_caption("Awesome Puzzle")
 
         pygame.mouse.set_visible(False)
         pygame.event.set_grab(True)
@@ -116,7 +112,6 @@ class GraphicsProgram3D:
 
         self.controlling_player = True
 
-
         # Camera setup
         self.player_view_matrix.eye = Point(0, 0, 5)
         self.player_view_matrix.look(Point(0, 0, 0))
@@ -129,6 +124,9 @@ class GraphicsProgram3D:
         # Create shapes
         self.sphere = Sphere(8, 16)
         self.cube = Cube()
+        self.mesh_shape = load_obj_file(
+            "TGRA---Assignment-5---3D-Game/MeshModelAddon/models", "combined_model.obj"
+        )
 
         # Time control
         self.my_clock = 0
@@ -155,10 +153,42 @@ class GraphicsProgram3D:
         self.UP_key_down = False
         self.white_background = False
 
+        self.texture_id_01 = self.load_texture(
+            "TGRA---Assignment-5---3D-Game/Textures/companioncube_uv.png"
+        )
+        self.texture_id_02 = self.load_texture(
+            "TGRA---Assignment-5---3D-Game/Textures/FNM_KingForADay.jpg"
+        )
+        self.texture_id_03 = self.load_texture(
+            "TGRA---Assignment-5---3D-Game/Textures/returnofthespacecowboy.jpg"
+        )
+
         self.create_obj()
 
         self.player = self.main_view_matrix.eye
         self.player.y = 5
+
+    def load_texture(self, path_string):
+        surface = pygame.image.load(path_string)
+        tex_string = pygame.image.tostring(surface, "RGBA", 1)
+        width = surface.get_width()
+        height = surface.get_height()
+        tex_id = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, tex_id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            width,
+            height,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            tex_string,
+        )
+        return tex_id
 
     def update(self):
         delta_time = self.clock.tick() / 1000.0
@@ -170,7 +200,7 @@ class GraphicsProgram3D:
 
         if self.jumping:
             self.time_jumped += delta_time
-            self.player.y += self.jump_speed*delta_time
+            self.player.y += self.jump_speed * delta_time
         if self.time_jumped >= self.jump_duration and self.jumping:
             self.jumping = False
 
@@ -199,27 +229,39 @@ class GraphicsProgram3D:
         self.shader.set_light_ambient(0, 0.3, 0.3, 0.3)
 
         self.model_matrix.load_identity()
+
+        self.model_matrix.push_matrix()
+        self.model_matrix.add_translation(4, -1, 4)
+        self.model_matrix.add_scale(1, 1, 1)
+        self.model_matrix.add_rotation_y(90)
+        self.shader.set_model_matrix(self.model_matrix.matrix)
+        # self.mesh_shape.draw(self.shader)
+        self.model_matrix.pop_matrix()
+
+        self.model_matrix.load_identity()
         self.draw_scene()
 
         pygame.display.flip()
 
     def handle_physics(self):
         delta_time = self.clock.get_time() / 1000.0
-        
-        player_half_size = 1.0  
+
+        player_half_size = 1.0
         player_half_height = 3.0
         gravity = -40
         for colliding_object in self.objects:
             if colliding_object.gravity and not colliding_object.touching_floor:
-                colliding_object.velocity = colliding_object.velocity + gravity * delta_time
+                colliding_object.velocity = (
+                    colliding_object.velocity + gravity * delta_time
+                )
                 colliding_object.position.y += colliding_object.velocity * delta_time
-    
+
         if not self.jumping:
             self.player_velocity = self.player_velocity + gravity * delta_time
             self.player.y += self.player_velocity * delta_time
-        
+
         found_floor = False
-        
+
         for object in self.objects:
             min_y = inf
             min_x = inf
@@ -227,7 +269,7 @@ class GraphicsProgram3D:
             max_y = -inf
             max_x = -inf
             max_z = -inf
-            
+
             for vertice in object.get_vertices():
                 min_x = min(min_x, vertice[0])
                 min_y = min(min_y, vertice[1])
@@ -235,22 +277,27 @@ class GraphicsProgram3D:
                 max_x = max(max_x, vertice[0])
                 max_y = max(max_y, vertice[1])
                 max_z = max(max_z, vertice[2])
-            
+
             player_min_x = self.player.x - player_half_size
             player_max_x = self.player.x + player_half_size
             player_min_y = self.player.y - player_half_height
             player_max_y = self.player.y + player_half_height
             player_min_z = self.player.z - player_half_size
             player_max_z = self.player.z + player_half_size
-            
-            if (player_min_x < max_x and player_max_x > min_x and
-                player_min_y < max_y and player_max_y > min_y and
-                player_min_z < max_z and player_max_z > min_z):
-                
+
+            if (
+                player_min_x < max_x
+                and player_max_x > min_x
+                and player_min_y < max_y
+                and player_max_y > min_y
+                and player_min_z < max_z
+                and player_max_z > min_z
+            ):
+
                 overlap_x = min(player_max_x - min_x, max_x - player_min_x)
                 overlap_y = min(player_max_y - min_y, max_y - player_min_y)
                 overlap_z = min(player_max_z - min_z, max_z - player_min_z)
-                
+
                 if overlap_x < overlap_y and overlap_x < overlap_z:
                     # Push along X axis
                     if self.player.x < (min_x + max_x) / 2:
@@ -261,7 +308,7 @@ class GraphicsProgram3D:
                         if object.pushable and self.floor_player_touching != object:
                             object.position.x -= self.push_force * delta_time
                         self.player.x = max_x + player_half_size
-                        
+
                 if overlap_y < overlap_x and overlap_y < overlap_z:
                     # Push along Y axis
                     if self.player.y < (min_y + max_y) / 2:
@@ -274,7 +321,7 @@ class GraphicsProgram3D:
                         found_floor = True
                         self.floor_player_touching = object
                         self.player_velocity = 0
-                        
+
                 if overlap_z < overlap_x and overlap_z < overlap_y:
                     # Push along Z axis
                     if self.player.z < (min_z + max_z) / 2:
@@ -285,10 +332,8 @@ class GraphicsProgram3D:
                         if object.pushable and self.floor_player_touching != object:
                             object.position.z -= self.push_force * delta_time
                         self.player.z = max_z + player_half_size
-        
+
         self.touching_floor = found_floor
-
-
 
         for colliding_object in self.objects:
             if colliding_object.collisions:
@@ -296,7 +341,7 @@ class GraphicsProgram3D:
                 for object in self.objects:
                     if object == colliding_object:
                         continue
-                        
+
                     min_y = inf
                     min_x = inf
                     min_z = inf
@@ -309,7 +354,7 @@ class GraphicsProgram3D:
                     colliding_max_y = -inf
                     colliding_max_x = -inf
                     colliding_max_z = -inf
-                    
+
                     for vertice in object.get_vertices():
                         min_x = min(min_x, vertice[0])
                         min_y = min(min_y, vertice[1])
@@ -317,7 +362,7 @@ class GraphicsProgram3D:
                         max_x = max(max_x, vertice[0])
                         max_y = max(max_y, vertice[1])
                         max_z = max(max_z, vertice[2])
-                    
+
                     for vertice in colliding_object.get_vertices():
                         colliding_min_x = min(colliding_min_x, vertice[0])
                         colliding_min_y = min(colliding_min_y, vertice[1])
@@ -325,36 +370,58 @@ class GraphicsProgram3D:
                         colliding_max_x = max(colliding_max_x, vertice[0])
                         colliding_max_y = max(colliding_max_y, vertice[1])
                         colliding_max_z = max(colliding_max_z, vertice[2])
-                    
-                    if (colliding_min_x < max_x and colliding_max_x > min_x and
-                        colliding_min_y < max_y and colliding_max_y > min_y and
-                        colliding_min_z < max_z and colliding_max_z > min_z):
-                        
-                        overlap_x = min(colliding_max_x - min_x, max_x - colliding_min_x)
-                        overlap_y = min(colliding_max_y - min_y, max_y - colliding_min_y)
-                        overlap_z = min(colliding_max_z - min_z, max_z - colliding_min_z)
-                        
+
+                    if (
+                        colliding_min_x < max_x
+                        and colliding_max_x > min_x
+                        and colliding_min_y < max_y
+                        and colliding_max_y > min_y
+                        and colliding_min_z < max_z
+                        and colliding_max_z > min_z
+                    ):
+
+                        overlap_x = min(
+                            colliding_max_x - min_x, max_x - colliding_min_x
+                        )
+                        overlap_y = min(
+                            colliding_max_y - min_y, max_y - colliding_min_y
+                        )
+                        overlap_z = min(
+                            colliding_max_z - min_z, max_z - colliding_min_z
+                        )
+
                         if overlap_x < overlap_y and overlap_x < overlap_z:
                             if colliding_object.position.x < (min_x + max_x) / 2:
-                                colliding_object.position.x = min_x - (colliding_max_x - colliding_min_x) / 2
+                                colliding_object.position.x = (
+                                    min_x - (colliding_max_x - colliding_min_x) / 2
+                                )
                             else:
-                                colliding_object.position.x = max_x + (colliding_max_x - colliding_min_x) / 2
-                                
+                                colliding_object.position.x = (
+                                    max_x + (colliding_max_x - colliding_min_x) / 2
+                                )
+
                         if overlap_y < overlap_x and overlap_y < overlap_z:
                             if colliding_object.position.y < (min_y + max_y) / 2:
-                                colliding_object.position.y = min_y - (colliding_max_y - colliding_min_y) / 2
+                                colliding_object.position.y = (
+                                    min_y - (colliding_max_y - colliding_min_y) / 2
+                                )
                             else:
-                                colliding_object.position.y = max_y + (colliding_max_y - colliding_min_y) / 2
+                                colliding_object.position.y = (
+                                    max_y + (colliding_max_y - colliding_min_y) / 2
+                                )
                                 found_floor_object = True
                                 colliding_object.velocity = 0
-                                
+
                         if overlap_z < overlap_x and overlap_z < overlap_y:
                             if colliding_object.position.z < (min_z + max_z) / 2:
-                                colliding_object.position.z = min_z - (colliding_max_z - colliding_min_z) / 2
+                                colliding_object.position.z = (
+                                    min_z - (colliding_max_z - colliding_min_z) / 2
+                                )
                             else:
-                                colliding_object.position.z = max_z + (colliding_max_z - colliding_min_z) / 2
+                                colliding_object.position.z = (
+                                    max_z + (colliding_max_z - colliding_min_z) / 2
+                                )
                 colliding_object.touching_floor = found_floor_object
-
 
     def draw_scene(self):
         for object in self.objects:
@@ -373,24 +440,25 @@ class GraphicsProgram3D:
         self.objects.append(new_cube)
 
         new_cube1 = CubeObj(
-            Vector(1, 0, 0),
+            Vector(1, 1, 1),
             Vector(6, 4, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(3, 2, 3),
+            texture=self.texture_id_03,
+            texture_spec=self.texture_id_03,
         )
         self.objects.append(new_cube1)
 
         new_cube2 = CubeObj(
-            Vector(0, 1, 0),
+            Vector(1, 1, 1),
             Vector(-4, 5, -4),
             self.shader,
             self.model_matrix,
             scale=Vector(2, 2, 2),
             pushable=True,
             collisions=True,
-            gravity=True,
-            follow_player=True
+            gravity=True
         )
         self.objects.append(new_cube2)
 
