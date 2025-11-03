@@ -14,8 +14,7 @@ from Matrices import *
 
 from ojb_3D_loading import *
 
-
-class CubeObj:
+class Object:
     def __init__(
         self,
         RGB: Vector,
@@ -64,6 +63,23 @@ class CubeObj:
         self.shader.set_model_matrix(self.model_matrix.matrix)
         self.cube.draw(self.shader)
         self.model_matrix.pop_matrix()
+
+class CubeObj(Object):
+    def __init__(
+        self,
+        RGB: Vector,
+        position: Vector,
+        shader,
+        model_matrix,
+        gravity=False,
+        collisions=False,
+        scale=Vector(1, 1, 1),
+        pushable=False,
+        texture=None,
+        texture_spec=None,
+    ):
+        super().__init__(RGB, position, shader, model_matrix, gravity, collisions, scale, pushable, texture, texture_spec)
+
 
     def get_vertices(self):
         """Returns the 8 corner vertices of the cube in world space."""
