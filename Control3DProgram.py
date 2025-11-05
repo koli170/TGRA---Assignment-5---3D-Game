@@ -79,6 +79,7 @@ class CubeObj(Object):
         pushable=False,
         texture=None,
         texture_spec=None,
+        pressure_plate=False,
     ):
         super().__init__(
             RGB,
@@ -92,6 +93,13 @@ class CubeObj(Object):
             texture,
             texture_spec,
         )
+        self.pressure_plate = pressure_plate
+
+    def pressed(self, state):
+        if state:
+            self.RGB = Vector(0, 1, 0)
+        else:
+            self.RGB = Vector(1, 0, 0)
 
     def get_vertices(self):
         """Returns the 8 corner vertices of the cube in world space."""
@@ -285,6 +293,8 @@ class GraphicsProgram3D:
         found_floor = False
 
         for object in self.objects:
+            if object.pressure_plate:
+                object.pressed(False)
             min_y = inf
             min_x = inf
             min_z = inf
@@ -320,7 +330,11 @@ class GraphicsProgram3D:
                 overlap_y = min(player_max_y - min_y, max_y - player_min_y)
                 overlap_z = min(player_max_z - min_z, max_z - player_min_z)
 
-                if overlap_x < overlap_y and overlap_x < overlap_z:
+                if (
+                    overlap_x < overlap_y
+                    and overlap_x < overlap_z
+                    and object.pressure_plate == False
+                ):
                     # Push along X axis
                     if self.player.x < (min_x + max_x) / 2:
                         self.player.x = min_x - player_half_size
@@ -339,12 +353,18 @@ class GraphicsProgram3D:
                             self.jumping = False
                             self.time_jumped = 0
                     else:
+                        if object.pressure_plate:
+                            object.pressed(True)
                         self.player.y = max_y + player_half_height
                         found_floor = True
                         self.floor_player_touching = object
                         self.player_velocity = 0
 
-                if overlap_z < overlap_x and overlap_z < overlap_y:
+                if (
+                    overlap_z < overlap_x
+                    and overlap_z < overlap_y
+                    and object.pressure_plate == False
+                ):
                     # Push along Z axis
                     if self.player.z < (min_z + max_z) / 2:
                         if object.pushable and self.floor_player_touching != object:
@@ -485,6 +505,16 @@ class GraphicsProgram3D:
             texture_spec=self.texture_id_02,
         )
         self.objects.append(new_cube2)
+
+        pressure_plate = CubeObj(
+            Vector(1, 0, 0),
+            Vector(4, -1.5, 4),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(4, 0.3, 4),
+            pressure_plate=True,
+        )
+        self.objects.append(pressure_plate)
 
         # Ground
         ground = CubeObj(
