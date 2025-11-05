@@ -54,8 +54,9 @@ class Vector:
         return Vector(
             self.y * other.z - self.z * other.y,
             self.z * other.x - self.x * other.z,
-            self.x * other.y - self.y * other.x,)
-        
+            self.x * other.y - self.y * other.x,
+        )
+
     def __str__(self):
         return f"({self.x}, {self.y}, {self.z})"
 
@@ -472,6 +473,12 @@ class MeshModel:
             normal.y,
             normal.z,
         ]
+
+        if uv is not None:
+            self.vertex_arrays[mesh_id] += [uv[0], uv[1]]
+        else:
+            self.vertex_arrays[mesh_id] += [0.0, 0.0]
+
         self.vertex_counts[mesh_id] += 1
 
     def set_mesh_material(self, mesh_id, mat_id):
@@ -492,6 +499,7 @@ class MeshModel:
             glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def draw(self, shader):
+        shader.set_use_texture(False)
         for mesh_id, mesh_material in self.mesh_materials.items():
             material = self.materials[mesh_material]
             shader.set_material_diffuse(

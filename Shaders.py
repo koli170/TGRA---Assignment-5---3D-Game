@@ -191,7 +191,7 @@ class Shader3D:
             3,
             GL_FLOAT,
             False,
-            6 * sizeof(GLfloat),
+            8 * sizeof(GLfloat),
             OpenGL.GLU.ctypes.c_void_p(0),
         )
         glVertexAttribPointer(
@@ -199,6 +199,14 @@ class Shader3D:
             3,
             GL_FLOAT,
             False,
-            6 * sizeof(GLfloat),
+            8 * sizeof(GLfloat),
             OpenGL.GLU.ctypes.c_void_p(3 * sizeof(GLfloat)),
+        )
+        glVertexAttribPointer(
+            self.uvLoc,
+            2,
+            GL_FLOAT,
+            False,
+            8 * sizeof(GLfloat),
+            OpenGL.GLU.ctypes.c_void_p(6 * sizeof(GLfloat)),
         )

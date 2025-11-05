@@ -14,6 +14,7 @@ from Matrices import *
 
 from ojb_3D_loading import *
 
+
 class Object:
     def __init__(
         self,
@@ -64,6 +65,7 @@ class Object:
         self.cube.draw(self.shader)
         self.model_matrix.pop_matrix()
 
+
 class CubeObj(Object):
     def __init__(
         self,
@@ -78,8 +80,18 @@ class CubeObj(Object):
         texture=None,
         texture_spec=None,
     ):
-        super().__init__(RGB, position, shader, model_matrix, gravity, collisions, scale, pushable, texture, texture_spec)
-
+        super().__init__(
+            RGB,
+            position,
+            shader,
+            model_matrix,
+            gravity,
+            collisions,
+            scale,
+            pushable,
+            texture,
+            texture_spec,
+        )
 
     def get_vertices(self):
         """Returns the 8 corner vertices of the cube in world space."""
@@ -104,6 +116,7 @@ class CubeObj(Object):
             vertices.append((world_x, world_y, world_z))
 
         return vertices
+
 
 class GraphicsProgram3D:
     def __init__(self):
@@ -141,9 +154,8 @@ class GraphicsProgram3D:
         # Create shapes
         self.sphere = Sphere(8, 16)
         self.cube = Cube()
-        self.mesh_shape = load_obj_file(
-            "MeshModelAddon/models", "combined_model.obj"
-        )
+        self.tryggvi_cube = load_obj_file("MeshModelAddon/models", "TRYGGVI_CUBE.obj")
+        self.tryggvi_cube.set_opengl_buffers()
 
         # Time control
         self.my_clock = 0
@@ -166,19 +178,12 @@ class GraphicsProgram3D:
         self.mouse_movement = Vector(0, 0, 0)
         self.mouse_sens = 0.1
 
-
         self.UP_key_down = False
         self.white_background = False
 
-        self.texture_id_01 = self.load_texture(
-            "Textures/companioncube_uv.png"
-        )
-        self.texture_id_02 = self.load_texture(
-            "Textures/FNM_KingForADay.jpg"
-        )
-        self.texture_id_03 = self.load_texture(
-            "Textures/returnofthespacecowboy.jpg"
-        )
+        self.texture_id_01 = self.load_texture("Textures/companioncube_uv.png")
+        self.texture_id_02 = self.load_texture("Textures/FNM_KingForADay.jpg")
+        self.texture_id_03 = self.load_texture("Textures/returnofthespacecowboy.jpg")
 
         self.create_obj()
 
@@ -248,11 +253,11 @@ class GraphicsProgram3D:
         self.model_matrix.load_identity()
 
         self.model_matrix.push_matrix()
-        self.model_matrix.add_translation(4, -1, 4)
-        self.model_matrix.add_scale(1, 1, 1)
-        self.model_matrix.add_rotation_y(90)
+        self.model_matrix.add_translation(0, 0, 0)
+        self.model_matrix.add_scale(3, 3, 3)
+        self.model_matrix.add_rotation_y(0)
         self.shader.set_model_matrix(self.model_matrix.matrix)
-        # self.mesh_shape.draw(self.shader)
+        self.tryggvi_cube.draw(self.shader)
         self.model_matrix.pop_matrix()
 
         self.model_matrix.load_identity()
@@ -556,12 +561,16 @@ class GraphicsProgram3D:
                 self.main_view_matrix.rotate_horizontal(self.rot_step)
             if keys[pygame.K_RIGHT]:
                 self.main_view_matrix.rotate_horizontal(-self.rot_step)
-            
+
             if self.relative_mouse_movement != (0, 0, 0):
-                self.main_view_matrix.rotate_horizontal(-self.relative_mouse_movement[0] * self.mouse_sens)
-                
-                self.main_view_matrix.pitch(self.relative_mouse_movement[1] * self.mouse_sens)
-                
+                self.main_view_matrix.rotate_horizontal(
+                    -self.relative_mouse_movement[0] * self.mouse_sens
+                )
+
+                self.main_view_matrix.pitch(
+                    self.relative_mouse_movement[1] * self.mouse_sens
+                )
+
                 self.relative_mouse_movement = (0, 0, 0)
 
             if keys[pygame.K_w]:
@@ -579,7 +588,7 @@ class GraphicsProgram3D:
                     print("Quitting!")
                     exiting = True
                 elif event.type == pygame.MOUSEMOTION:
-                    self.mouse_movement = event.pos  
+                    self.mouse_movement = event.pos
                     self.relative_mouse_movement = event.rel
                 elif event.type == pygame.KEYDOWN:
                     if event.key == K_ESCAPE:
