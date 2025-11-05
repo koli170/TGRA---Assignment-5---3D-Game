@@ -14,6 +14,7 @@ from Matrices import *
 
 from ojb_3D_loading import *
 
+
 class Object:
     def __init__(
         self,
@@ -64,6 +65,7 @@ class Object:
         self.cube.draw(self.shader)
         self.model_matrix.pop_matrix()
 
+
 class CubeObj(Object):
     def __init__(
         self,
@@ -77,9 +79,27 @@ class CubeObj(Object):
         pushable=False,
         texture=None,
         texture_spec=None,
+        pressure_plate=False,
     ):
-        super().__init__(RGB, position, shader, model_matrix, gravity, collisions, scale, pushable, texture, texture_spec)
+        super().__init__(
+            RGB,
+            position,
+            shader,
+            model_matrix,
+            gravity,
+            collisions,
+            scale,
+            pushable,
+            texture,
+            texture_spec,
+        )
+        self.pressure_plate = pressure_plate
 
+    def pressed(self, state):
+        if state:
+            self.RGB = Vector(0, 1, 0)
+        else:
+            self.RGB = Vector(1, 0, 0)
 
     def get_vertices(self):
         """Returns the 8 corner vertices of the cube in world space."""
@@ -104,6 +124,7 @@ class CubeObj(Object):
             vertices.append((world_x, world_y, world_z))
 
         return vertices
+
 
 class GraphicsProgram3D:
     def __init__(self):
@@ -141,9 +162,7 @@ class GraphicsProgram3D:
         # Create shapes
         self.sphere = Sphere(8, 16)
         self.cube = Cube()
-        self.mesh_shape = load_obj_file(
-            "MeshModelAddon/models", "combined_model.obj"
-        )
+        self.mesh_shape = load_obj_file("MeshModelAddon/models", "combined_model.obj")
 
         # Time control
         self.my_clock = 0
@@ -166,19 +185,12 @@ class GraphicsProgram3D:
         self.mouse_movement = Vector(0, 0, 0)
         self.mouse_sens = 0.1
 
-
         self.UP_key_down = False
         self.white_background = False
 
-        self.texture_id_01 = self.load_texture(
-            "Textures/companioncube_uv.png"
-        )
-        self.texture_id_02 = self.load_texture(
-            "Textures/FNM_KingForADay.jpg"
-        )
-        self.texture_id_03 = self.load_texture(
-            "Textures/returnofthespacecowboy.jpg"
-        )
+        self.texture_id_01 = self.load_texture("Textures/companioncube_uv.png")
+        self.texture_id_02 = self.load_texture("Textures/FNM_KingForADay.jpg")
+        self.texture_id_03 = self.load_texture("Textures/returnofthespacecowboy.jpg")
 
         self.create_obj()
 
@@ -280,6 +292,8 @@ class GraphicsProgram3D:
         found_floor = False
 
         for object in self.objects:
+            if object.pressure_plate:
+                object.pressed(False)
             min_y = inf
             min_x = inf
             min_z = inf
@@ -315,7 +329,11 @@ class GraphicsProgram3D:
                 overlap_y = min(player_max_y - min_y, max_y - player_min_y)
                 overlap_z = min(player_max_z - min_z, max_z - player_min_z)
 
-                if overlap_x < overlap_y and overlap_x < overlap_z:
+                if (
+                    overlap_x < overlap_y
+                    and overlap_x < overlap_z
+                    and object.pressure_plate == False
+                ):
                     # Push along X axis
                     if self.player.x < (min_x + max_x) / 2:
                         self.player.x = min_x - player_half_size
@@ -334,12 +352,18 @@ class GraphicsProgram3D:
                             self.jumping = False
                             self.time_jumped = 0
                     else:
+                        if object.pressure_plate:
+                            object.pressed(True)
                         self.player.y = max_y + player_half_height
                         found_floor = True
                         self.floor_player_touching = object
                         self.player_velocity = 0
 
-                if overlap_z < overlap_x and overlap_z < overlap_y:
+                if (
+                    overlap_z < overlap_x
+                    and overlap_z < overlap_y
+                    and object.pressure_plate == False
+                ):
                     # Push along Z axis
                     if self.player.z < (min_z + max_z) / 2:
                         if object.pushable and self.floor_player_touching != object:
@@ -481,6 +505,16 @@ class GraphicsProgram3D:
         )
         self.objects.append(new_cube2)
 
+        pressure_plate = CubeObj(
+            Vector(1, 0, 0),
+            Vector(4, -1.5, 4),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(4, 0.3, 4),
+            pressure_plate=True,
+        )
+        self.objects.append(pressure_plate)
+
         # Ground
         ground = CubeObj(
             Vector(0.4, 0.4, 0.4),
@@ -556,12 +590,16 @@ class GraphicsProgram3D:
                 self.main_view_matrix.rotate_horizontal(self.rot_step)
             if keys[pygame.K_RIGHT]:
                 self.main_view_matrix.rotate_horizontal(-self.rot_step)
-            
+
             if self.relative_mouse_movement != (0, 0, 0):
-                self.main_view_matrix.rotate_horizontal(-self.relative_mouse_movement[0] * self.mouse_sens)
-                
-                self.main_view_matrix.pitch(self.relative_mouse_movement[1] * self.mouse_sens)
-                
+                self.main_view_matrix.rotate_horizontal(
+                    -self.relative_mouse_movement[0] * self.mouse_sens
+                )
+
+                self.main_view_matrix.pitch(
+                    self.relative_mouse_movement[1] * self.mouse_sens
+                )
+
                 self.relative_mouse_movement = (0, 0, 0)
 
             if keys[pygame.K_w]:
@@ -579,7 +617,7 @@ class GraphicsProgram3D:
                     print("Quitting!")
                     exiting = True
                 elif event.type == pygame.MOUSEMOTION:
-                    self.mouse_movement = event.pos  
+                    self.mouse_movement = event.pos
                     self.relative_mouse_movement = event.rel
                 elif event.type == pygame.KEYDOWN:
                     if event.key == K_ESCAPE:
