@@ -160,6 +160,8 @@ class GraphicsProgram3D:
         self.shader.set_projection_matrix(self.projection_matrix.get_matrix())
 
         # Create shapes
+        self.objects = []
+        self.colliding_objects = []
         self.sphere = Sphere(8, 16)
         self.cube = Cube()
         self.mesh_shape = load_obj_file("MeshModelAddon/models", "combined_model.obj")
@@ -174,7 +176,6 @@ class GraphicsProgram3D:
         self.angle = 0
         self.move_speed = 10
         self.rotation_speed = 150
-        self.objects = []
         self.jumping = False
         self.player_velocity = 0
         self.jump_speed = 20
@@ -278,8 +279,8 @@ class GraphicsProgram3D:
         player_half_size = 1.0
         player_half_height = 3.0
         gravity = -40
-        for colliding_object in self.objects:
-            if colliding_object.gravity and not colliding_object.touching_floor:
+        for colliding_object in self.colliding_objects:
+            if colliding_object.gravity:
                 colliding_object.velocity = (
                     colliding_object.velocity + gravity * delta_time
                 )
@@ -376,93 +377,96 @@ class GraphicsProgram3D:
 
         self.touching_floor = found_floor
 
-        for colliding_object in self.objects:
-            if colliding_object.collisions:
-                found_floor_object = False
-                for object in self.objects:
-                    if object == colliding_object:
-                        continue
+        for colliding_object in self.colliding_objects:
+            found_floor_object = False
+            for object in self.objects:
+                if object == colliding_object:
+                    continue
 
-                    min_y = inf
-                    min_x = inf
-                    min_z = inf
-                    max_y = -inf
-                    max_x = -inf
-                    max_z = -inf
-                    colliding_min_y = inf
-                    colliding_min_x = inf
-                    colliding_min_z = inf
-                    colliding_max_y = -inf
-                    colliding_max_x = -inf
-                    colliding_max_z = -inf
+                min_y = inf
+                min_x = inf
+                min_z = inf
+                max_y = -inf
+                max_x = -inf
+                max_z = -inf
+                colliding_min_y = inf
+                colliding_min_x = inf
+                colliding_min_z = inf
+                colliding_max_y = -inf
+                colliding_max_x = -inf
+                colliding_max_z = -inf
 
-                    for vertice in object.get_vertices():
-                        min_x = min(min_x, vertice[0])
-                        min_y = min(min_y, vertice[1])
-                        min_z = min(min_z, vertice[2])
-                        max_x = max(max_x, vertice[0])
-                        max_y = max(max_y, vertice[1])
-                        max_z = max(max_z, vertice[2])
+                for vertice in object.get_vertices():
+                    min_x = min(min_x, vertice[0])
+                    min_y = min(min_y, vertice[1])
+                    min_z = min(min_z, vertice[2])
+                    max_x = max(max_x, vertice[0])
+                    max_y = max(max_y, vertice[1])
+                    max_z = max(max_z, vertice[2])
 
-                    for vertice in colliding_object.get_vertices():
-                        colliding_min_x = min(colliding_min_x, vertice[0])
-                        colliding_min_y = min(colliding_min_y, vertice[1])
-                        colliding_min_z = min(colliding_min_z, vertice[2])
-                        colliding_max_x = max(colliding_max_x, vertice[0])
-                        colliding_max_y = max(colliding_max_y, vertice[1])
-                        colliding_max_z = max(colliding_max_z, vertice[2])
+                for vertice in colliding_object.get_vertices():
+                    colliding_min_x = min(colliding_min_x, vertice[0])
+                    colliding_min_y = min(colliding_min_y, vertice[1])
+                    colliding_min_z = min(colliding_min_z, vertice[2])
+                    colliding_max_x = max(colliding_max_x, vertice[0])
+                    colliding_max_y = max(colliding_max_y, vertice[1])
+                    colliding_max_z = max(colliding_max_z, vertice[2])
+
+                if (
+                    colliding_min_x < max_x
+                    and colliding_max_x > min_x
+                    and colliding_min_y < max_y
+                    and colliding_max_y > min_y
+                    and colliding_min_z < max_z
+                    and colliding_max_z > min_z
+                ):
+
+                    overlap_x = min(colliding_max_x - min_x, max_x - colliding_min_x)
+                    overlap_y = min(colliding_max_y - min_y, max_y - colliding_min_y)
+                    overlap_z = min(colliding_max_z - min_z, max_z - colliding_min_z)
 
                     if (
-                        colliding_min_x < max_x
-                        and colliding_max_x > min_x
-                        and colliding_min_y < max_y
-                        and colliding_max_y > min_y
-                        and colliding_min_z < max_z
-                        and colliding_max_z > min_z
+                        overlap_x < overlap_y
+                        and overlap_x < overlap_z
+                        and object.pressure_plate == False
                     ):
+                        if colliding_object.position.x < (min_x + max_x) / 2:
+                            colliding_object.position.x = (
+                                min_x - (colliding_max_x - colliding_min_x) / 2
+                            )
+                        else:
+                            colliding_object.position.x = (
+                                max_x + (colliding_max_x - colliding_min_x) / 2
+                            )
 
-                        overlap_x = min(
-                            colliding_max_x - min_x, max_x - colliding_min_x
-                        )
-                        overlap_y = min(
-                            colliding_max_y - min_y, max_y - colliding_min_y
-                        )
-                        overlap_z = min(
-                            colliding_max_z - min_z, max_z - colliding_min_z
-                        )
+                    if overlap_y < overlap_x and overlap_y < overlap_z:
+                        if colliding_object.position.y < (min_y + max_y) / 2:
+                            colliding_object.position.y = (
+                                min_y - (colliding_max_y - colliding_min_y) / 2
+                            )
+                        else:
+                            colliding_object.position.y = (
+                                max_y + (colliding_max_y - colliding_min_y) / 2
+                            )
+                            if object.pressure_plate:
+                                object.pressed(True)
+                            found_floor_object = True
+                            colliding_object.velocity = 0
 
-                        if overlap_x < overlap_y and overlap_x < overlap_z:
-                            if colliding_object.position.x < (min_x + max_x) / 2:
-                                colliding_object.position.x = (
-                                    min_x - (colliding_max_x - colliding_min_x) / 2
-                                )
-                            else:
-                                colliding_object.position.x = (
-                                    max_x + (colliding_max_x - colliding_min_x) / 2
-                                )
-
-                        if overlap_y < overlap_x and overlap_y < overlap_z:
-                            if colliding_object.position.y < (min_y + max_y) / 2:
-                                colliding_object.position.y = (
-                                    min_y - (colliding_max_y - colliding_min_y) / 2
-                                )
-                            else:
-                                colliding_object.position.y = (
-                                    max_y + (colliding_max_y - colliding_min_y) / 2
-                                )
-                                found_floor_object = True
-                                colliding_object.velocity = 0
-
-                        if overlap_z < overlap_x and overlap_z < overlap_y:
-                            if colliding_object.position.z < (min_z + max_z) / 2:
-                                colliding_object.position.z = (
-                                    min_z - (colliding_max_z - colliding_min_z) / 2
-                                )
-                            else:
-                                colliding_object.position.z = (
-                                    max_z + (colliding_max_z - colliding_min_z) / 2
-                                )
-                colliding_object.touching_floor = found_floor_object
+                    if (
+                        overlap_z < overlap_x
+                        and overlap_z < overlap_y
+                        and object.pressure_plate == False
+                    ):
+                        if colliding_object.position.z < (min_z + max_z) / 2:
+                            colliding_object.position.z = (
+                                min_z - (colliding_max_z - colliding_min_z) / 2
+                            )
+                        else:
+                            colliding_object.position.z = (
+                                max_z + (colliding_max_z - colliding_min_z) / 2
+                            )
+            colliding_object.touching_floor = found_floor_object
 
     def draw_scene(self):
         for object in self.objects:
@@ -574,6 +578,10 @@ class GraphicsProgram3D:
             scale=Vector(20, 10, 0.5),
         )
         self.objects.append(front_wall)
+
+        for object in self.objects:
+            if object.collisions:
+                self.colliding_objects.append(object)
 
     def program_loop(self):
         exiting = False
