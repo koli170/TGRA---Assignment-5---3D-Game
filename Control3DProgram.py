@@ -273,16 +273,6 @@ class GraphicsProgram3D:
         self.shader.set_light_ambient(0, 0.3, 0.3, 0.3)
 
         self.model_matrix.load_identity()
-
-        self.model_matrix.push_matrix()
-        self.model_matrix.add_translation(3, -2, 3)
-        self.model_matrix.add_scale(1, 1, 1)
-        self.model_matrix.add_rotation_y(0)
-        self.shader.set_model_matrix(self.model_matrix.matrix)
-        self.tryggvi_cube.draw(self.shader)
-        self.model_matrix.pop_matrix()
-
-        self.model_matrix.load_identity()
         self.draw_scene()
 
         pygame.display.flip()
