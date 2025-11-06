@@ -30,6 +30,9 @@ class Object:
         texture_spec=None,
         shape=None,
         offset=None,
+        stairs=False,
+        rotation=False,
+        bound_one=False
     ):
         self.RGB = RGB
         self.scale = scale
@@ -41,11 +44,14 @@ class Object:
         self.floor = floor
         self.pushable = pushable
         self.touching_floor = False
-        self.velocity = 0
+        self.velocity = Vector(0, 0, 0)
         self.texture = texture
         self.cube = Cube() if shape is None else shape
         self.texture_spec = texture_spec
         self.offset = offset
+        self.stairs = stairs
+        self.rotation = rotation
+        self.bound_one=bound_one
 
     def draw(self):
         self.model_matrix.push_matrix()
@@ -70,6 +76,8 @@ class Object:
             self.model_matrix.add_translation(
                 self.position.x, self.position.y, self.position.z
             )
+        if self.rotation != False:
+            self.model_matrix.add_rotation_z(self.rotation)
         self.model_matrix.add_scale(self.scale.x, self.scale.y, self.scale.z)
         self.shader.set_model_matrix(self.model_matrix.matrix)
         self.cube.draw(self.shader)
@@ -90,8 +98,12 @@ class CubeObj(Object):
         texture=None,
         texture_spec=None,
         pressure_plate=False,
+        pressed_on=False,
         shape=None,
         offset=None,
+        stairs=False,
+        rotation=False,
+        bound_one=False
     ):
         super().__init__(
             RGB,
@@ -106,11 +118,15 @@ class CubeObj(Object):
             texture_spec,
             shape=shape,
             offset=offset,
+            stairs=stairs,
+            rotation=rotation,
+            bound_one=bound_one
         )
         self.pressure_plate = pressure_plate
+        self.pressed_on=pressed_on
 
-    def pressed(self, state):
-        if state:
+    def pressed(self):
+        if self.pressed_on:
             self.RGB = Vector(0, 1, 0)
         else:
             self.RGB = Vector(1, 0, 0)
@@ -170,7 +186,7 @@ class GraphicsProgram3D:
 
         # Apply initial camera + projection
         self.shader.set_view_matrix(self.main_view_matrix.get_matrix())
-        self.projection_matrix.set_perspective(90, 800 / 600, 0.5, 50)
+        self.projection_matrix.set_perspective(90, 800 / 600, 0.5, 100)
         self.shader.set_projection_matrix(self.projection_matrix.get_matrix())
 
         # Create shapes
@@ -201,6 +217,9 @@ class GraphicsProgram3D:
         self.mouse_movement = Vector(0, 0, 0)
         self.mouse_sens = 0.1
 
+        self.pressure_plate_one_pressed = False
+        self.pressure_plate_one = None
+
         self.UP_key_down = False
         self.white_background = False
 
@@ -213,7 +232,9 @@ class GraphicsProgram3D:
         self.create_obj()
 
         self.player = self.main_view_matrix.eye
-        self.player.y = 5
+        self.player.x = -18
+        self.player.z = -2
+        self.main_view_matrix.look(Vector(0, 0, 0))
 
     def load_texture(self, path_string):
         surface = pygame.image.load(path_string)
@@ -240,6 +261,9 @@ class GraphicsProgram3D:
     def update(self):
         delta_time = self.clock.tick() / 1000.0
         self.my_clock += delta_time
+
+        if self.pressure_plate_one != None:
+            self.pressure_plate_one_pressed = self.pressure_plate_one.pressed_on
 
         self.angle += pi * delta_time
         self.rot_step = self.rotation_speed * delta_time
@@ -286,12 +310,23 @@ class GraphicsProgram3D:
         player_half_size = 1.0
         player_half_height = 3.0
         gravity = -40
+        friction = 1
         for colliding_object in self.colliding_objects:
             if colliding_object.gravity:
-                colliding_object.velocity = (
-                    colliding_object.velocity + gravity * delta_time
+                colliding_object.velocity.y = (
+                    colliding_object.velocity.y + gravity * delta_time
                 )
-                colliding_object.position.y += colliding_object.velocity * delta_time
+                colliding_object.position.y += colliding_object.velocity.y * delta_time
+            if abs(colliding_object.velocity.x) > 0.001 or abs(colliding_object.velocity.z) > 0.001:
+                colliding_object.position.x += colliding_object.velocity.x * delta_time
+                colliding_object.position.z += colliding_object.velocity.z * delta_time
+                colliding_object.velocity.x *= (1 - friction * delta_time)
+                colliding_object.velocity.z *= (1 - friction * delta_time)
+                if abs(colliding_object.velocity.x) < 0.01:
+                    colliding_object.velocity.x = 0
+                if abs(colliding_object.velocity.z) < 0.01:
+                    colliding_object.velocity.z = 0
+
 
         if not self.jumping:
             self.player_velocity = self.player_velocity + gravity * delta_time
@@ -301,7 +336,10 @@ class GraphicsProgram3D:
 
         for object in self.objects:
             if object.pressure_plate:
-                object.pressed(False)
+                object.pressed_on = False
+                object.pressed()
+            if object.bound_one and self.pressure_plate_one_pressed == False:
+                continue
             min_y = inf
             min_x = inf
             min_z = inf
@@ -340,7 +378,7 @@ class GraphicsProgram3D:
                 if (
                     overlap_x < overlap_y
                     and overlap_x < overlap_z
-                    and object.pressure_plate == False
+                    and (object.pressure_plate == False and object.stairs == False)
                 ):
                     # Push along X axis
                     if self.player.x < (min_x + max_x) / 2:
@@ -361,7 +399,8 @@ class GraphicsProgram3D:
                             self.time_jumped = 0
                     else:
                         if object.pressure_plate:
-                            object.pressed(True)
+                            object.pressed_on = True
+                            object.pressed()
                         self.player.y = max_y + player_half_height
                         found_floor = True
                         self.floor_player_touching = object
@@ -370,7 +409,7 @@ class GraphicsProgram3D:
                 if (
                     overlap_z < overlap_x
                     and overlap_z < overlap_y
-                    and object.pressure_plate == False
+                    and (object.pressure_plate == False and object.stairs == False)
                 ):
                     # Push along Z axis
                     if self.player.z < (min_z + max_z) / 2:
@@ -435,7 +474,7 @@ class GraphicsProgram3D:
                     if (
                         overlap_x < overlap_y
                         and overlap_x < overlap_z
-                        and object.pressure_plate == False
+                        and (object.pressure_plate == False and object.stairs == False)
                     ):
                         if colliding_object.position.x < (min_x + max_x) / 2:
                             colliding_object.position.x = (
@@ -456,14 +495,17 @@ class GraphicsProgram3D:
                                 max_y + (colliding_max_y - colliding_min_y) / 2
                             )
                             if object.pressure_plate:
-                                object.pressed(True)
+                                object.pressed_on = True
+                                object.pressed()
                             found_floor_object = True
-                            colliding_object.velocity = 0
+                            colliding_object.velocity.y = 0
+                            if object.stairs:
+                                colliding_object.velocity.x += -40 * delta_time
 
                     if (
                         overlap_z < overlap_x
                         and overlap_z < overlap_y
-                        and object.pressure_plate == False
+                        and (object.pressure_plate == False and object.stairs == False)
                     ):
                         if colliding_object.position.z < (min_z + max_z) / 2:
                             colliding_object.position.z = (
@@ -477,32 +519,34 @@ class GraphicsProgram3D:
 
     def draw_scene(self):
         for object in self.objects:
+            if self.pressure_plate_one_pressed == False and object.bound_one:
+                continue
             object.draw()
+    def create_stairs(self, start_position, num_steps, step_width, step_depth, step_height):
+        for i in range(num_steps):
+            x_pos = start_position.x + (i * step_width / 2)
+            
+            # Height scale grows cumulatively
+            height_scale = step_height * (i + 1)
+            
+            # Y position needs to be offset by half the height since cube position is at center
+            y_pos = start_position.y + (height_scale / 2)
+            
+            z_pos = start_position.z
+            
+            stair = CubeObj(
+                Vector(1, 1, 1),
+                Vector(x_pos, y_pos, z_pos),
+                self.shader,
+                self.model_matrix,
+                scale=Vector(step_width, height_scale, step_depth),
+                stairs=True,
+                bound_one = True
+            )
+            self.objects.append(stair)
 
     def create_obj(self, map=False):
-
-        # Red cube
-        new_cube = CubeObj(
-            Vector(1, 0, 0),
-            Vector(0, 2, 0),
-            self.shader,
-            self.model_matrix,
-            scale=Vector(3, 2, 3),
-        )
-        self.objects.append(new_cube)
-
-        new_cube1 = CubeObj(
-            Vector(1, 1, 1),
-            Vector(6, 4, 0),
-            self.shader,
-            self.model_matrix,
-            scale=Vector(3, 2, 3),
-            texture=self.texture_id_03,
-            texture_spec=self.texture_id_03,
-        )
-        self.objects.append(new_cube1)
-
-        new_cube2 = CubeObj(
+        tryggvi_cube_one = CubeObj(
             Vector(1, 1, 1),
             Vector(-4, 5, -4),
             self.shader,
@@ -514,25 +558,26 @@ class GraphicsProgram3D:
             shape=self.tryggvi_cube,
             offset=(0, -2.35, 0),
         )
-        self.objects.append(new_cube2)
+        self.objects.append(tryggvi_cube_one)
 
         pressure_plate = CubeObj(
             Vector(1, 0, 0),
-            Vector(4, -1.5, 4),
+            Vector(-15, -1.5, -10),
             self.shader,
             self.model_matrix,
             scale=Vector(4, 0.3, 4),
             pressure_plate=True,
         )
         self.objects.append(pressure_plate)
+        self.pressure_plate_one = pressure_plate
 
         # Ground
         ground = CubeObj(
             Vector(1, 1, 1),
-            Vector(0, -2, 0),
+            Vector(-10, -2, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(20, 0.5, 20),
+            scale=Vector(20, 0.5, 40),
             texture=self.texture_floor,
             texture_spec=self.texture_floor,
         )
@@ -544,57 +589,85 @@ class GraphicsProgram3D:
             Vector(0, 15, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(20, 0.5, 20),
+            scale=Vector(80, 0.5, 40),
         )
         self.objects.append(ceiling)
 
-        # Right wall
+        # Front wall
         right_wall = CubeObj(
             Vector(1, 1, 1),
-            Vector(10 - 0.5, 3, 0),
+            Vector(40 - 0.5, 6, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(0.5, 10, 20),
+            scale=Vector(0.5, 16, 40),
             texture=self.texture_wall,
             texture_spec=self.texture_wall,
         )
         self.objects.append(right_wall)
 
-        # Left wall
+        # back wall
         left_wall = CubeObj(
             Vector(1, 1, 1),
-            Vector(-10 + 0.5, 3, 0),
+            Vector(-20 + 0.5, 6, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(0.5, 10, 20),
+            scale=Vector(0.5, 16, 40),
             texture=self.texture_wall,
             texture_spec=self.texture_wall,
         )
         self.objects.append(left_wall)
 
-        # Back wall
+        # Right wall
         back_wall = CubeObj(
             Vector(1, 1, 1),
-            Vector(0, 3, 10),
+            Vector(0, 6, 20),
             self.shader,
             self.model_matrix,
-            scale=Vector(20, 10, 0.5),
+            scale=Vector(80, 16, 0.5),
             texture=self.texture_wall,
             texture_spec=self.texture_wall,
         )
         self.objects.append(back_wall)
 
-        # Front wall
+        # Left wall
         front_wall = CubeObj(
             Vector(1, 1, 1),
-            Vector(0, 3, -10),
+            Vector(0, 6, -20),
             self.shader,
             self.model_matrix,
-            scale=Vector(20, 10, 0.5),
+            scale=Vector(80, 16, 0.5),
             texture=self.texture_wall,
             texture_spec=self.texture_wall,
         )
         self.objects.append(front_wall)
+
+        # Stairs
+        self.create_stairs(Vector(0, -1.7, 18), 10,2, 8, 1)
+
+        # walkway from stairs
+        walk_way = CubeObj(
+            Vector(1, 1, 1),
+            Vector(14, 8.05, 18),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(10, 0.5, 8),
+            bound_one=True
+        )
+        self.objects.append(walk_way)
+
+        tryggvi_cube_two = CubeObj(
+            Vector(1, 1, 1),
+            Vector(17, 13, 17),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(1.2, 1.2, 1.2),
+            pushable=True,
+            collisions=True,
+            gravity=True,
+            shape=self.tryggvi_cube,
+            offset=(0, -2.35, 0),
+        )
+        self.objects.append(tryggvi_cube_two)
 
         for object in self.objects:
             if object.collisions:

@@ -84,6 +84,27 @@ class ModelMatrix:
             1,
         ]
         self.add_transformation(other_matrix)
+    def add_rotation_z(self, angle):
+        other_matrix = [
+            cos(angle),
+            -sin(angle),
+            0,
+            0,
+            sin(angle),
+            cos(angle),
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+        ]
+        self.add_transformation(other_matrix)
+
 
     def print(self):
         print(self.matrix)
