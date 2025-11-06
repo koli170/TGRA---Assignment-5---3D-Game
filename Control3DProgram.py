@@ -32,7 +32,9 @@ class Object:
         offset=None,
         stairs=False,
         rotation=False,
-        bound_one=False
+        bound_one=False,
+        bound_two=False,
+        bound_three=False,
     ):
         self.RGB = RGB
         self.scale = scale
@@ -52,6 +54,8 @@ class Object:
         self.stairs = stairs
         self.rotation = rotation
         self.bound_one=bound_one
+        self.bound_two=bound_two
+        self.bound_three=bound_three
 
     def draw(self):
         self.model_matrix.push_matrix()
@@ -103,7 +107,9 @@ class CubeObj(Object):
         offset=None,
         stairs=False,
         rotation=False,
-        bound_one=False
+        bound_one=False,
+        bound_two=False,
+        bound_three=False,
     ):
         super().__init__(
             RGB,
@@ -120,7 +126,9 @@ class CubeObj(Object):
             offset=offset,
             stairs=stairs,
             rotation=rotation,
-            bound_one=bound_one
+            bound_one=bound_one,
+            bound_two=bound_two,
+            bound_three=bound_three,
         )
         self.pressure_plate = pressure_plate
         self.pressed_on=pressed_on
@@ -220,6 +228,12 @@ class GraphicsProgram3D:
         self.pressure_plate_one_pressed = False
         self.pressure_plate_one = None
 
+        self.pressure_plate_two_pressed = False
+        self.pressure_plate_two = None
+
+        self.pressure_plate_three_pressed = False
+        self.pressure_plate_three = None
+
         self.UP_key_down = False
         self.white_background = False
 
@@ -264,6 +278,10 @@ class GraphicsProgram3D:
 
         if self.pressure_plate_one != None:
             self.pressure_plate_one_pressed = self.pressure_plate_one.pressed_on
+        if self.pressure_plate_two != None:
+            self.pressure_plate_two_pressed = self.pressure_plate_two.pressed_on
+        if self.pressure_plate_three != None:
+            self.pressure_plate_three_pressed = self.pressure_plate_three.pressed_on
 
         self.angle += pi * delta_time
         self.rot_step = self.rotation_speed * delta_time
@@ -338,7 +356,7 @@ class GraphicsProgram3D:
             if object.pressure_plate:
                 object.pressed_on = False
                 object.pressed()
-            if object.bound_one and self.pressure_plate_one_pressed == False:
+            if (object.bound_one and self.pressure_plate_one_pressed == False) or (object.bound_two and self.pressure_plate_two_pressed == False) or (object.bound_three and self.pressure_plate_three_pressed == False):
                 continue
             min_y = inf
             min_x = inf
@@ -519,7 +537,7 @@ class GraphicsProgram3D:
 
     def draw_scene(self):
         for object in self.objects:
-            if self.pressure_plate_one_pressed == False and object.bound_one:
+            if (self.pressure_plate_one_pressed == False and object.bound_one) or (self.pressure_plate_two_pressed == False and object.bound_two) or (self.pressure_plate_three_pressed == False and object.bound_three):
                 continue
             object.draw()
     def create_stairs(self, start_position, num_steps, step_width, step_depth, step_height):
@@ -571,10 +589,44 @@ class GraphicsProgram3D:
         self.objects.append(pressure_plate)
         self.pressure_plate_one = pressure_plate
 
+        pressure_plate_two = CubeObj(
+            Vector(1, 0, 0),
+            Vector(-16, -1.5, 10),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(4, 0.3, 4),
+            pressure_plate=True,
+        )
+        self.objects.append(pressure_plate_two)
+        self.pressure_plate_two = pressure_plate_two
+
+        pressure_plate_three = CubeObj(
+            Vector(1, 0, 0),
+            Vector(-6, -1.5, 10),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(4, 0.3, 4),
+            pressure_plate=True,
+        )
+        self.objects.append(pressure_plate_three)
+        self.pressure_plate_three = pressure_plate_three
+
+
         # Ground
         ground = CubeObj(
             Vector(1, 1, 1),
             Vector(-10, -2, 0),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(20, 0.5, 40),
+            texture=self.texture_floor,
+            texture_spec=self.texture_floor,
+        )
+        self.objects.append(ground)
+
+        ground = CubeObj(
+            Vector(1, 1, 1),
+            Vector(50, -2, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(20, 0.5, 40),
@@ -596,7 +648,7 @@ class GraphicsProgram3D:
         # Front wall
         right_wall = CubeObj(
             Vector(1, 1, 1),
-            Vector(40 - 0.5, 6, 0),
+            Vector(60 - 0.5, 6, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(0.5, 16, 40),
@@ -620,7 +672,7 @@ class GraphicsProgram3D:
         # Right wall
         back_wall = CubeObj(
             Vector(1, 1, 1),
-            Vector(0, 6, 20),
+            Vector(20, 6, 20),
             self.shader,
             self.model_matrix,
             scale=Vector(80, 16, 0.5),
@@ -632,7 +684,7 @@ class GraphicsProgram3D:
         # Left wall
         front_wall = CubeObj(
             Vector(1, 1, 1),
-            Vector(0, 6, -20),
+            Vector(20, 6, -20),
             self.shader,
             self.model_matrix,
             scale=Vector(80, 16, 0.5),
@@ -669,9 +721,28 @@ class GraphicsProgram3D:
         )
         self.objects.append(tryggvi_cube_two)
 
+        walk_way_escape = CubeObj(
+            Vector(1, 1, 1),
+            Vector(10, -2, 0),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(20, 0.5, 8),
+            bound_two=True
+        )
+        self.objects.append(walk_way_escape)
+        walk_way_escape_two = CubeObj(
+            Vector(1, 1, 1),
+            Vector(30, -2, 0),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(20, 0.5, 8),
+            bound_three=True
+        )
+        self.objects.append(walk_way_escape_two)
         for object in self.objects:
             if object.collisions:
                 self.colliding_objects.append(object)
+                
 
     def program_loop(self):
         exiting = False
