@@ -110,6 +110,7 @@ class CubeObj(Object):
         bound_one=False,
         bound_two=False,
         bound_three=False,
+        friction=1
     ):
         super().__init__(
             RGB,
@@ -132,6 +133,7 @@ class CubeObj(Object):
         )
         self.pressure_plate = pressure_plate
         self.pressed_on=pressed_on
+        self.friction = friction
 
     def pressed(self):
         if self.pressed_on:
@@ -220,7 +222,7 @@ class GraphicsProgram3D:
         self.jump_speed = 20
         self.jump_duration = 0.2
         self.time_jumped = 0
-        self.push_force = 5
+        self.push_force = 40
         self.relative_mouse_movement = (0, 0, 0)
         self.mouse_movement = Vector(0, 0, 0)
         self.mouse_sens = 0.1
@@ -328,7 +330,6 @@ class GraphicsProgram3D:
         player_half_size = 1.0
         player_half_height = 3.0
         gravity = -40
-        friction = 1
         for colliding_object in self.colliding_objects:
             if colliding_object.gravity:
                 colliding_object.velocity.y = (
@@ -338,8 +339,8 @@ class GraphicsProgram3D:
             if abs(colliding_object.velocity.x) > 0.001 or abs(colliding_object.velocity.z) > 0.001:
                 colliding_object.position.x += colliding_object.velocity.x * delta_time
                 colliding_object.position.z += colliding_object.velocity.z * delta_time
-                colliding_object.velocity.x *= (1 - friction * delta_time)
-                colliding_object.velocity.z *= (1 - friction * delta_time)
+                colliding_object.velocity.x *= (1 - colliding_object.friction * delta_time)
+                colliding_object.velocity.z *= (1 - colliding_object.friction * delta_time)
                 if abs(colliding_object.velocity.x) < 0.01:
                     colliding_object.velocity.x = 0
                 if abs(colliding_object.velocity.z) < 0.01:
@@ -402,10 +403,10 @@ class GraphicsProgram3D:
                     if self.player.x < (min_x + max_x) / 2:
                         self.player.x = min_x - player_half_size
                         if object.pushable and self.floor_player_touching != object:
-                            object.position.x += self.push_force * delta_time
+                            object.velocity.x += self.push_force * delta_time
                     else:
                         if object.pushable and self.floor_player_touching != object:
-                            object.position.x -= self.push_force * delta_time
+                            object.velocity.x -= self.push_force * delta_time
                         self.player.x = max_x + player_half_size
 
                 if overlap_y < overlap_x and overlap_y < overlap_z:
@@ -432,17 +433,18 @@ class GraphicsProgram3D:
                     # Push along Z axis
                     if self.player.z < (min_z + max_z) / 2:
                         if object.pushable and self.floor_player_touching != object:
-                            object.position.z += self.push_force * delta_time
+                            object.velocity.z += self.push_force * delta_time
                         self.player.z = min_z - player_half_size
                     else:
                         if object.pushable and self.floor_player_touching != object:
-                            object.position.z -= self.push_force * delta_time
+                            object.velocity.z -= self.push_force * delta_time
                         self.player.z = max_z + player_half_size
 
         self.touching_floor = found_floor
 
         for colliding_object in self.colliding_objects:
             found_floor_object = False
+            colliding_object.friction = 10
             for object in self.objects:
                 if object == colliding_object:
                     continue
@@ -519,6 +521,7 @@ class GraphicsProgram3D:
                             colliding_object.velocity.y = 0
                             if object.stairs:
                                 colliding_object.velocity.x += -40 * delta_time
+                                colliding_object.friction = 1
 
                     if (
                         overlap_z < overlap_x
