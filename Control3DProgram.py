@@ -28,6 +28,8 @@ class Object:
         pushable=False,
         texture=None,
         texture_spec=None,
+        shape=None,
+        offset=None,
     ):
         self.RGB = RGB
         self.scale = scale
@@ -41,8 +43,9 @@ class Object:
         self.touching_floor = False
         self.velocity = 0
         self.texture = texture
-        self.cube = Cube()
+        self.cube = Cube() if shape is None else shape
         self.texture_spec = texture_spec
+        self.offset = offset
 
     def draw(self):
         self.model_matrix.push_matrix()
@@ -57,9 +60,16 @@ class Object:
         else:
             self.shader.set_use_texture(False)
         self.shader.set_material_diffuse(self.RGB.x, self.RGB.y, self.RGB.z)
-        self.model_matrix.add_translation(
-            self.position.x, self.position.y, self.position.z
-        )
+        if self.offset:
+            self.model_matrix.add_translation(
+                self.position.x + self.offset[0],
+                self.position.y + self.offset[1],
+                self.position.z + self.offset[2],
+            )
+        else:
+            self.model_matrix.add_translation(
+                self.position.x, self.position.y, self.position.z
+            )
         self.model_matrix.add_scale(self.scale.x, self.scale.y, self.scale.z)
         self.shader.set_model_matrix(self.model_matrix.matrix)
         self.cube.draw(self.shader)
@@ -80,6 +90,8 @@ class CubeObj(Object):
         texture=None,
         texture_spec=None,
         pressure_plate=False,
+        shape=None,
+        offset=None,
     ):
         super().__init__(
             RGB,
@@ -92,6 +104,8 @@ class CubeObj(Object):
             pushable,
             texture,
             texture_spec,
+            shape=shape,
+            offset=offset,
         )
         self.pressure_plate = pressure_plate
 
@@ -162,7 +176,7 @@ class GraphicsProgram3D:
         # Create shapes
         self.sphere = Sphere(8, 16)
         self.cube = Cube()
-        self.tryggvi_cube = load_obj_file("MeshModelAddon/models", "TRYGGVI_CUBE.obj")
+        self.tryggvi_cube = load_obj_file("MeshModelAddon/models", "NEWTRYGGVICUBE.obj")
         self.tryggvi_cube.set_opengl_buffers()
 
         # Time control
@@ -261,8 +275,8 @@ class GraphicsProgram3D:
         self.model_matrix.load_identity()
 
         self.model_matrix.push_matrix()
-        self.model_matrix.add_translation(0, 0, 0)
-        self.model_matrix.add_scale(3, 3, 3)
+        self.model_matrix.add_translation(3, -2, 3)
+        self.model_matrix.add_scale(1, 1, 1)
         self.model_matrix.add_rotation_y(0)
         self.shader.set_model_matrix(self.model_matrix.matrix)
         self.tryggvi_cube.draw(self.shader)
@@ -497,12 +511,12 @@ class GraphicsProgram3D:
             Vector(-4, 5, -4),
             self.shader,
             self.model_matrix,
-            scale=Vector(2, 2, 2),
+            scale=Vector(1.2, 1.2, 1.2),
             pushable=True,
             collisions=True,
             gravity=True,
-            texture=self.texture_id_02,
-            texture_spec=self.texture_id_02,
+            shape=self.tryggvi_cube,
+            offset=(0, -2.35, 0),
         )
         self.objects.append(new_cube2)
 
