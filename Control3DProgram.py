@@ -207,6 +207,8 @@ class GraphicsProgram3D:
         self.texture_id_01 = self.load_texture("Textures/companioncube_uv.png")
         self.texture_id_02 = self.load_texture("Textures/FNM_KingForADay.jpg")
         self.texture_id_03 = self.load_texture("Textures/returnofthespacecowboy.jpg")
+        self.texture_wall = self.load_texture("Textures/TGRAF-WALL.png")
+        self.texture_floor = self.load_texture("Textures/TGRAF-GOLF.png")
 
         self.create_obj()
 
@@ -526,11 +528,13 @@ class GraphicsProgram3D:
 
         # Ground
         ground = CubeObj(
-            Vector(0.4, 0.4, 0.4),
+            Vector(1, 1, 1),
             Vector(0, -2, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(20, 0.5, 20),
+            texture=self.texture_floor,
+            texture_spec=self.texture_floor,
         )
         self.objects.append(ground)
 
@@ -546,41 +550,49 @@ class GraphicsProgram3D:
 
         # Right wall
         right_wall = CubeObj(
-            Vector(0.4, 0.4, 0.4),
+            Vector(1, 1, 1),
             Vector(10 - 0.5, 3, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(0.5, 10, 20),
+            texture=self.texture_wall,
+            texture_spec=self.texture_wall,
         )
         self.objects.append(right_wall)
 
         # Left wall
         left_wall = CubeObj(
-            Vector(0.4, 0.4, 0.4),
+            Vector(1, 1, 1),
             Vector(-10 + 0.5, 3, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(0.5, 10, 20),
+            texture=self.texture_wall,
+            texture_spec=self.texture_wall,
         )
         self.objects.append(left_wall)
 
         # Back wall
         back_wall = CubeObj(
-            Vector(0.4, 0.4, 0.4),
+            Vector(1, 1, 1),
             Vector(0, 3, 10),
             self.shader,
             self.model_matrix,
             scale=Vector(20, 10, 0.5),
+            texture=self.texture_wall,
+            texture_spec=self.texture_wall,
         )
         self.objects.append(back_wall)
 
         # Front wall
         front_wall = CubeObj(
-            Vector(0.4, 0.4, 0.4),
+            Vector(1, 1, 1),
             Vector(0, 3, -10),
             self.shader,
             self.model_matrix,
             scale=Vector(20, 10, 0.5),
+            texture=self.texture_wall,
+            texture_spec=self.texture_wall,
         )
         self.objects.append(front_wall)
 
