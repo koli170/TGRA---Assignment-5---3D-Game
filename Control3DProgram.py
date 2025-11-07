@@ -387,16 +387,22 @@ class GraphicsProgram3D:
         glViewport(0, 0, self.width, self.height)
 
         # Update camera and light
+        # self.shader.set_attenuation_check(1)
         self.shader.set_projection_matrix(self.projection_matrix.get_matrix())
         self.shader.set_view_matrix(self.main_view_matrix.get_matrix())
         self.shader.set_eye_position(self.main_view_matrix.eye)
 
         # Basic light settings
-        self.shader.set_num_lights(1)
+        self.shader.set_num_lights(2)
         self.shader.set_light_diffuse(0, 0.7, 0.7, 0.7)
         self.shader.set_light_position(0, Vector(0, 5, 0))
         self.shader.set_light_specular(0, 0.4, 0.4, 0.4)
         self.shader.set_light_ambient(0, 0.3, 0.3, 0.3)
+
+        self.shader.set_light_diffuse(1, 0.7, 0.7, 0.7)
+        self.shader.set_light_position(1, Vector(55, 5, 0))
+        self.shader.set_light_specular(1, 0.4, 0.4, 0.4)
+        self.shader.set_light_ambient(1, 0.3, 0.3, 0.3)
 
         if self.lava_timer > 1:
             self.lava_object.position = bezier(self.lava_timer - 1, self.lava_points_2)
@@ -785,6 +791,7 @@ class GraphicsProgram3D:
             scale=Vector(20, 0.5, 40),
             texture=self.texture_floor,
             texture_spec=self.texture_floor,
+            ambient=Vector(1, 1, 1),
         )
         self.objects.append(ground)
 
@@ -893,6 +900,7 @@ class GraphicsProgram3D:
             bound_two=True,
             texture=self.texture_bridge,
             texture_spec=self.texture_bridge,
+            ambient=Vector(1, 1, 1),
         )
         self.objects.append(walk_way_escape)
         walk_way_escape_two = CubeObj(
@@ -904,6 +912,7 @@ class GraphicsProgram3D:
             bound_three=True,
             texture=self.texture_bridge,
             texture_spec=self.texture_bridge,
+            ambient=Vector(1, 1, 1),
         )
         self.objects.append(walk_way_escape_two)
         for object in self.objects:

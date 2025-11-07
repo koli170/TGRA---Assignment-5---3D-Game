@@ -62,7 +62,7 @@ void main(void)
 
 			color += u_light_diffuse[i] * mat_diffuse * att * lambert;
 			color += u_light_specular[i] * mat_specular * att * pow(phong, u_mat_shininess);
-			color += u_light_ambient[i] * u_mat_ambient * 0.1;
+			color += u_light_ambient[i] * u_mat_ambient * 1.0;
 		}
 
 		if(u_use_texture == 1) {
