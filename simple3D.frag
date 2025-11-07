@@ -29,7 +29,7 @@ void main(void)
 				gl_FragColor = u_mat_diffuse * texture2D(u_tex01, v_uv);
 			}
 		else{
-			gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+			gl_FragColor = vec4(0.8, 0.8, 0.0, 1.0);
 		}
 ;
 	}

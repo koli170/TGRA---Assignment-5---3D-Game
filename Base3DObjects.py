@@ -516,3 +516,231 @@ class MeshModel:
             shader.set_attribute_buffers(self.vertex_buffer_ids[mesh_id])
             glDrawArrays(GL_TRIANGLES, 0, self.vertex_counts[mesh_id])
             glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+
+class TriForce:
+    def __init__(self, thickness=0.5):
+        self.thickness = thickness
+        front_z = thickness / 2
+        back_z = -thickness / 2
+
+        # Vertices for front triangle (z = +thickness/2)
+        front_top = [0.0, 1.0, front_z]
+        front_left = [-1.0, -1.0, front_z]
+        front_right = [1.0, -1.0, front_z]
+
+        # Vertices for back triangle (z = -thickness/2)
+        back_top = [0.0, 1.0, back_z]
+        back_left = [-1.0, -1.0, back_z]
+        back_right = [1.0, -1.0, back_z]
+
+        # For same-sized triangle:
+        front_top2 = [1.0, -1.0, front_z]  # Bottom right corner of first triangle
+        front_left2 = [0.0, -3.0, front_z]  # Go down 2 more units (not 1)
+        front_right2 = [2.0, -3.0, front_z]  # Go down 2 more units
+
+        back_top2 = [1.0, -1.0, back_z]
+        back_left2 = [0.0, -3.0, back_z]
+        back_right2 = [2.0, -3.0, back_z]
+
+        front_top3 = [-1.0, -1.0, front_z]  # Bottom left corner of first triangle
+        front_left3 = [-2.0, -3.0, front_z]  # Go left and down
+        front_right3 = [0.0, -3.0, front_z]  # Meet the right triangle at center
+
+        back_top3 = [-1.0, -1.0, back_z]
+        back_left3 = [-2.0, -3.0, back_z]
+        back_right3 = [0.0, -3.0, back_z]
+
+        # Simple normals - just point out from each face
+        front_normal = [0, 0, 1]  # Forward
+        back_normal = [0, 0, -1]  # Backward
+        right_normal = [1, 0, 0]  # Right
+        left_normal = [-1, 0, 0]  # Left
+        up_normal = [0, 1, 0]  # Up
+        down_normal = [0, -1, 0]  # Down
+
+        self.normal_array = [
+            # First prism - front triangle (6 vertices)
+            *front_normal,
+            *front_normal,
+            *front_normal,
+            # First prism - back triangle (6 vertices)
+            *back_normal,
+            *back_normal,
+            *back_normal,
+            # First prism - side 1 (6 vertices)
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            # First prism - side 2 (6 vertices)
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            # First prism - side 3 (6 vertices)
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            # Second prism - front triangle (6 vertices)
+            *front_normal,
+            *front_normal,
+            *front_normal,
+            # Second prism - back triangle (6 vertices)
+            *back_normal,
+            *back_normal,
+            *back_normal,
+            # Second prism - side 1 (6 vertices)
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            # Second prism - side 2 (6 vertices)
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            # Second prism - side 3 (6 vertices)
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            # Third prism - front triangle (6 vertices)
+            *front_normal,
+            *front_normal,
+            *front_normal,
+            # Third prism - back triangle (6 vertices)
+            *back_normal,
+            *back_normal,
+            *back_normal,
+            # Third prism - side 1 (6 vertices)
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            *left_normal,
+            # Third prism - side 2 (6 vertices)
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            *down_normal,
+            # Third prism - side 3 (6 vertices)
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            *right_normal,
+            *right_normal,
+        ]
+
+        self.position_array = [
+            # Front triangle
+            *front_top,
+            *front_left,
+            *front_right,
+            # Back triangle (reverse winding for correct face culling)
+            *back_right,
+            *back_left,
+            *back_top,
+            # Side 1: Top-Left edge (front_top - front_left to back_top - back_left)
+            *front_top,
+            *front_left,
+            *back_left,
+            *back_left,
+            *back_top,
+            *front_top,
+            # Side 2: Left-Right edge (front_left - front_right to back_left - back_right)
+            *front_left,
+            *front_right,
+            *back_right,
+            *back_right,
+            *back_left,
+            *front_left,
+            # Side 3: Right-Top edge (front_right - front_top to back_right - back_top)
+            *front_right,
+            *front_top,
+            *back_top,
+            *back_top,
+            *back_right,
+            *front_right,
+            # Front triangle
+            *front_top2,
+            *front_left2,
+            *front_right2,
+            # Back triangle (reverse winding for correct face culling)
+            *back_right2,
+            *back_left2,
+            *back_top2,
+            # Side 1: Top-Left edge (front_top - front_left to back_top - back_left)
+            *front_top2,
+            *front_left2,
+            *back_left2,
+            *back_left2,
+            *back_top2,
+            *front_top2,
+            # Side 2: Left-Right edge (front_left - front_right to back_left - back_right)
+            *front_left2,
+            *front_right2,
+            *back_right2,
+            *back_right2,
+            *back_left2,
+            *front_left2,
+            # Side 3: Right-Top edge (front_right - front_top to back_right - back_top)
+            *front_right2,
+            *front_top2,
+            *back_top2,
+            *back_top2,
+            *back_right2,
+            *front_right2,
+            *front_top3,
+            *front_left3,
+            *front_right3,
+            # Back triangle (reverse winding for correct face culling)
+            *back_right3,
+            *back_left3,
+            *back_top3,
+            # Side 1: Top-Left edge (front_top - front_left to back_top - back_left)
+            *front_top3,
+            *front_left3,
+            *back_left3,
+            *back_left3,
+            *back_top3,
+            *front_top3,
+            # Side 2: Left-Right edge (front_left - front_right to back_left - back_right)
+            *front_left3,
+            *front_right3,
+            *back_right3,
+            *back_right3,
+            *back_left3,
+            *front_left3,
+            # Side 3: Right-Top edge (front_right - front_top to back_right - back_top)
+            *front_right3,
+            *front_top3,
+            *back_top3,
+            *back_top3,
+            *back_right3,
+            *front_right3,
+        ]
+
+    def set_vertices(self, shader):
+        shader.set_position_attribute(self.position_array)
+        shader.set_normal_attribute(self.normal_array)
+
+    def draw(self, shader):
+        glDrawArrays(GL_TRIANGLES, 0, len(self.position_array) // 3)
