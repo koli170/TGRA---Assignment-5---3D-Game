@@ -48,6 +48,7 @@ class Object:
         bound_three=False,
         ambient=Vector(0, 0, 0),
         skip_light=False,
+        lava=False,
     ):
         self.RGB = RGB
         self.scale = scale
@@ -71,6 +72,7 @@ class Object:
         self.bound_three = bound_three
         self.ambient = ambient
         self.skip_light = skip_light
+        self.lava = lava
 
     def draw(self):
         self.model_matrix.push_matrix()
@@ -134,6 +136,7 @@ class CubeObj(Object):
         friction=1,
         wall=False,
         skip_light=False,
+        lava=False,
     ):
         super().__init__(
             RGB,
@@ -155,6 +158,7 @@ class CubeObj(Object):
             bound_three=bound_three,
             ambient=ambient,
             skip_light=skip_light,
+            lava=lava,
         )
         self.pressure_plate = pressure_plate
         self.pressed_on = pressed_on
@@ -195,8 +199,13 @@ class CubeObj(Object):
 class GraphicsProgram3D:
     def __init__(self):
 
+        self.width = 1280
+        self.height = 720
+
         pygame.init()
-        pygame.display.set_mode((800, 600), pygame.OPENGL | pygame.DOUBLEBUF)
+        pygame.display.set_mode(
+            (self.width, self.height), pygame.OPENGL | pygame.DOUBLEBUF
+        )
         pygame.display.set_caption("Awesome Puzzle")
 
         pygame.mouse.set_visible(False)
@@ -222,7 +231,7 @@ class GraphicsProgram3D:
 
         # Apply initial camera + projection
         self.shader.set_view_matrix(self.main_view_matrix.get_matrix())
-        self.projection_matrix.set_perspective(90, 800 / 600, 0.5, 100)
+        self.projection_matrix.set_perspective(90, self.width / self.height, 0.5, 100)
         self.shader.set_projection_matrix(self.projection_matrix.get_matrix())
 
         # Create shapes
@@ -253,6 +262,8 @@ class GraphicsProgram3D:
         self.mouse_movement = Vector(0, 0, 0)
         self.mouse_sens = 0.1
 
+        self.gravity = -40
+
         self.pressure_plate_one_pressed = False
         self.pressure_plate_one = None
 
@@ -261,6 +272,17 @@ class GraphicsProgram3D:
 
         self.pressure_plate_three_pressed = False
         self.pressure_plate_three = None
+
+        self.touching_lava = False
+
+        self.original_player_position = None
+        self.original_cubeone_position = None
+        self.original_cubetwo_position = None
+
+        self.death_timer = 0
+
+        self.cube_one = None
+        self.cube_two = None
 
         self.UP_key_down = False
         self.white_background = False
@@ -296,6 +318,7 @@ class GraphicsProgram3D:
         self.player = self.main_view_matrix.eye
         self.player.x = -18
         self.player.z = -2
+        self.original_player_position = Vector(-17, 3, -2)
         self.main_view_matrix.look(Vector(0, 0, 0))
 
     def load_texture(self, path_string):
@@ -325,6 +348,10 @@ class GraphicsProgram3D:
         if delta_time > 0.1:
             return
         self.my_clock += delta_time
+        if self.death_timer > 2:
+            self.reset()
+        if self.touching_lava:
+            self.death_timer += delta_time
         self.lava_timer += delta_time * 0.20
         if self.lava_timer > 2:
             self.lava_timer -= 2
@@ -356,7 +383,7 @@ class GraphicsProgram3D:
             else glClearColor(0, 0, 1, 1)
         )
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glViewport(0, 0, 800, 600)
+        glViewport(0, 0, self.width, self.height)
 
         # Update camera and light
         self.shader.set_projection_matrix(self.projection_matrix.get_matrix())
@@ -387,11 +414,10 @@ class GraphicsProgram3D:
 
         player_half_size = 1.0
         player_half_height = 3.0
-        gravity = -40
         for colliding_object in self.colliding_objects:
             if colliding_object.gravity:
                 colliding_object.velocity.y = (
-                    colliding_object.velocity.y + gravity * delta_time
+                    colliding_object.velocity.y + self.gravity * delta_time
                 )
                 colliding_object.position.y += colliding_object.velocity.y * delta_time
             if (
@@ -412,7 +438,7 @@ class GraphicsProgram3D:
                     colliding_object.velocity.z = 0
 
         if not self.jumping:
-            self.player_velocity = self.player_velocity + gravity * delta_time
+            self.player_velocity = self.player_velocity + self.gravity * delta_time
             self.player.y += self.player_velocity * delta_time
 
         found_floor = False
@@ -485,13 +511,19 @@ class GraphicsProgram3D:
                             self.jumping = False
                             self.time_jumped = 0
                     else:
-                        if object.pressure_plate:
-                            object.pressed_on = True
-                            object.pressed()
-                        self.player.y = max_y + player_half_height
-                        found_floor = True
-                        self.floor_player_touching = object
-                        self.player_velocity = 0
+                        if object.lava:
+                            self.gravity = -1
+                            if self.touching_lava == False:
+                                self.player_velocity = 0
+                                self.touching_lava = True
+                        else:
+                            if object.pressure_plate:
+                                object.pressed_on = True
+                                object.pressed()
+                            self.player.y = max_y + player_half_height
+                            found_floor = True
+                            self.floor_player_touching = object
+                            self.player_velocity = 0
 
                 if (
                     overlap_z < overlap_x
@@ -591,6 +623,15 @@ class GraphicsProgram3D:
                             if object.pressure_plate:
                                 object.pressed_on = True
                                 object.pressed()
+                            if object.lava:
+                                if colliding_object == self.cube_one:
+                                    colliding_object.position = (
+                                        self.original_cubeone_position
+                                    )
+                                elif colliding_object == self.cube_two:
+                                    colliding_object.position = (
+                                        self.original_cubetwo_position
+                                    )
                             found_floor_object = True
                             colliding_object.velocity.y = 0
                             if object.stairs:
@@ -667,6 +708,8 @@ class GraphicsProgram3D:
             offset=(0, -2.35, 0),
         )
         self.objects.append(tryggvi_cube_one)
+        self.original_cubeone_position = tryggvi_cube_one.position.copy()
+        self.cube_one = tryggvi_cube_one
 
         pressure_plate = CubeObj(
             Vector(1, 0, 0),
@@ -811,6 +854,7 @@ class GraphicsProgram3D:
             texture=self.texture_lava_large,
             texture_spec=self.texture_lava_large,
             skip_light=True,
+            lava=True,
         )
         self.objects.append(lava)
         self.lava_object = lava
@@ -828,6 +872,8 @@ class GraphicsProgram3D:
             offset=(0, -2.35, 0),
         )
         self.objects.append(tryggvi_cube_two)
+        self.original_cubetwo_position = tryggvi_cube_two.position.copy()
+        self.cube_two = tryggvi_cube_two
 
         walk_way_escape = CubeObj(
             Vector(1, 1, 1),
@@ -854,6 +900,36 @@ class GraphicsProgram3D:
         for object in self.objects:
             if object.collisions:
                 self.colliding_objects.append(object)
+
+    def reset(self):
+        # Reset player position and state
+        self.main_view_matrix.eye.x = self.original_player_position.x
+        self.main_view_matrix.eye.y = self.original_player_position.y
+        self.main_view_matrix.eye.z = self.original_player_position.z
+        self.player_velocity = 0
+        self.jumping = False
+        self.time_jumped = 0
+        self.touching_floor = False
+        self.floor_player_touching = None
+
+        # Reset cube positions and velocities
+        self.cube_one.position.x = self.original_cubeone_position.x
+        self.cube_one.position.y = self.original_cubeone_position.y
+        self.cube_one.position.z = self.original_cubeone_position.z
+        self.cube_one.velocity = Vector(0, 0, 0)
+
+        self.cube_two.position.x = self.original_cubetwo_position.x
+        self.cube_two.position.y = self.original_cubetwo_position.y
+        self.cube_two.position.z = self.original_cubetwo_position.z
+        self.cube_two.velocity = Vector(0, 0, 0)
+
+        # Reset lava state
+        self.touching_lava = False
+        self.gravity = -40
+        self.death_timer = 0
+
+        # Reset camera
+        self.main_view_matrix.look(Vector(0, 0, 0))
 
     def program_loop(self):
         exiting = False
@@ -882,13 +958,13 @@ class GraphicsProgram3D:
 
                 self.relative_mouse_movement = (0, 0, 0)
 
-            if keys[pygame.K_w]:
+            if keys[pygame.K_w] and self.touching_lava == False:
                 self.main_view_matrix.walk(0, 0, -self.move_step)
-            if keys[pygame.K_s]:
+            if keys[pygame.K_s] and self.touching_lava == False:
                 self.main_view_matrix.walk(0, 0, self.move_step)
-            if keys[pygame.K_a]:
+            if keys[pygame.K_a] and self.touching_lava == False:
                 self.main_view_matrix.walk(-self.move_step, 0, 0)
-            if keys[pygame.K_d]:
+            if keys[pygame.K_d] and self.touching_lava == False:
                 self.main_view_matrix.walk(self.move_step, 0, 0)
 
             # EVENT HANDLING

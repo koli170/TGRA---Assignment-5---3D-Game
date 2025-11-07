@@ -57,6 +57,9 @@ class Vector:
             self.x * other.y - self.y * other.x,
         )
 
+    def copy(self):
+        return Vector(self.x, self.y, self.z)
+
     def __str__(self):
         return f"({self.x}, {self.y}, {self.z})"
 
