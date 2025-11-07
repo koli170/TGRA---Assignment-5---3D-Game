@@ -114,6 +114,8 @@ class CubeObj(Object):
         bound_two=False,
         bound_three=False,
         friction=1,
+        ambient=Vector(0, 0, 0),
+        wall=False,
     ):
         super().__init__(
             RGB,
@@ -774,6 +776,8 @@ class GraphicsProgram3D:
             self.model_matrix,
             scale=Vector(20, 0.5, 8),
             bound_two=True,
+            texture=self.texture_bridge,
+            texture_spec=self.texture_bridge,
         )
         self.objects.append(walk_way_escape)
         walk_way_escape_two = CubeObj(
@@ -783,6 +787,8 @@ class GraphicsProgram3D:
             self.model_matrix,
             scale=Vector(20, 0.5, 8),
             bound_three=True,
+            texture=self.texture_bridge,
+            texture_spec=self.texture_bridge,
         )
         self.objects.append(walk_way_escape_two)
         for object in self.objects:
