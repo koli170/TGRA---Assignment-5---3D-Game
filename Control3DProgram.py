@@ -35,6 +35,7 @@ class Object:
         bound_one=False,
         bound_two=False,
         bound_three=False,
+        ambient=Vector(0, 0, 0),
     ):
         self.RGB = RGB
         self.scale = scale
@@ -53,9 +54,10 @@ class Object:
         self.offset = offset
         self.stairs = stairs
         self.rotation = rotation
-        self.bound_one=bound_one
-        self.bound_two=bound_two
-        self.bound_three=bound_three
+        self.bound_one = bound_one
+        self.bound_two = bound_two
+        self.bound_three = bound_three
+        self.ambient = ambient
 
     def draw(self):
         self.model_matrix.push_matrix()
@@ -70,6 +72,7 @@ class Object:
         else:
             self.shader.set_use_texture(False)
         self.shader.set_material_diffuse(self.RGB.x, self.RGB.y, self.RGB.z)
+        self.shader.set_material_ambient(self.ambient.x, self.ambient.y, self.ambient.z)
         if self.offset:
             self.model_matrix.add_translation(
                 self.position.x + self.offset[0],
@@ -110,7 +113,13 @@ class CubeObj(Object):
         bound_one=False,
         bound_two=False,
         bound_three=False,
-        friction=1
+        wall=False,
+        friction=1,
+        ambient=Vector(
+            0,
+            0,
+            0,
+        ),
     ):
         super().__init__(
             RGB,
@@ -130,10 +139,12 @@ class CubeObj(Object):
             bound_one=bound_one,
             bound_two=bound_two,
             bound_three=bound_three,
+            ambient=ambient,
         )
         self.pressure_plate = pressure_plate
-        self.pressed_on=pressed_on
+        self.pressed_on = pressed_on
         self.friction = friction
+        self.wall = wall
 
     def pressed(self):
         if self.pressed_on:
@@ -276,6 +287,8 @@ class GraphicsProgram3D:
 
     def update(self):
         delta_time = self.clock.tick() / 1000.0
+        if delta_time > 0.1:
+            return
         self.my_clock += delta_time
 
         if self.pressure_plate_one != None:
@@ -326,6 +339,8 @@ class GraphicsProgram3D:
 
     def handle_physics(self):
         delta_time = self.clock.get_time() / 1000.0
+        if delta_time > 0.1:
+            return
 
         player_half_size = 1.0
         player_half_height = 3.0
@@ -336,16 +351,22 @@ class GraphicsProgram3D:
                     colliding_object.velocity.y + gravity * delta_time
                 )
                 colliding_object.position.y += colliding_object.velocity.y * delta_time
-            if abs(colliding_object.velocity.x) > 0.001 or abs(colliding_object.velocity.z) > 0.001:
+            if (
+                abs(colliding_object.velocity.x) > 0.001
+                or abs(colliding_object.velocity.z) > 0.001
+            ):
                 colliding_object.position.x += colliding_object.velocity.x * delta_time
                 colliding_object.position.z += colliding_object.velocity.z * delta_time
-                colliding_object.velocity.x *= (1 - colliding_object.friction * delta_time)
-                colliding_object.velocity.z *= (1 - colliding_object.friction * delta_time)
+                colliding_object.velocity.x *= (
+                    1 - colliding_object.friction * delta_time
+                )
+                colliding_object.velocity.z *= (
+                    1 - colliding_object.friction * delta_time
+                )
                 if abs(colliding_object.velocity.x) < 0.01:
                     colliding_object.velocity.x = 0
                 if abs(colliding_object.velocity.z) < 0.01:
                     colliding_object.velocity.z = 0
-
 
         if not self.jumping:
             self.player_velocity = self.player_velocity + gravity * delta_time
@@ -357,7 +378,11 @@ class GraphicsProgram3D:
             if object.pressure_plate:
                 object.pressed_on = False
                 object.pressed()
-            if (object.bound_one and self.pressure_plate_one_pressed == False) or (object.bound_two and self.pressure_plate_two_pressed == False) or (object.bound_three and self.pressure_plate_three_pressed == False):
+            if (
+                (object.bound_one and self.pressure_plate_one_pressed == False)
+                or (object.bound_two and self.pressure_plate_two_pressed == False)
+                or (object.bound_three and self.pressure_plate_three_pressed == False)
+            ):
                 continue
             min_y = inf
             min_x = inf
@@ -500,10 +525,16 @@ class GraphicsProgram3D:
                             colliding_object.position.x = (
                                 min_x - (colliding_max_x - colliding_min_x) / 2
                             )
+                            if object.wall:
+                                colliding_object.velocity.x -= 11000 * delta_time
+                                colliding_object.friction = 0.5
                         else:
                             colliding_object.position.x = (
                                 max_x + (colliding_max_x - colliding_min_x) / 2
                             )
+                            if object.wall:
+                                colliding_object.velocity.x += 11000 * delta_time
+                                colliding_object.friction = 0.5
 
                     if overlap_y < overlap_x and overlap_y < overlap_z:
                         if colliding_object.position.y < (min_y + max_y) / 2:
@@ -532,29 +563,42 @@ class GraphicsProgram3D:
                             colliding_object.position.z = (
                                 min_z - (colliding_max_z - colliding_min_z) / 2
                             )
+                            if object.wall:
+                                colliding_object.velocity.z -= 11000 * delta_time
+                                colliding_object.friction = 0.5
                         else:
                             colliding_object.position.z = (
                                 max_z + (colliding_max_z - colliding_min_z) / 2
                             )
+                            if object.wall:
+                                colliding_object.velocity.z += 11000 * delta_time
+                                colliding_object.friction = 0.5
             colliding_object.touching_floor = found_floor_object
 
     def draw_scene(self):
         for object in self.objects:
-            if (self.pressure_plate_one_pressed == False and object.bound_one) or (self.pressure_plate_two_pressed == False and object.bound_two) or (self.pressure_plate_three_pressed == False and object.bound_three):
+            if (
+                (self.pressure_plate_one_pressed == False and object.bound_one)
+                or (self.pressure_plate_two_pressed == False and object.bound_two)
+                or (self.pressure_plate_three_pressed == False and object.bound_three)
+            ):
                 continue
             object.draw()
-    def create_stairs(self, start_position, num_steps, step_width, step_depth, step_height):
+
+    def create_stairs(
+        self, start_position, num_steps, step_width, step_depth, step_height
+    ):
         for i in range(num_steps):
             x_pos = start_position.x + (i * step_width / 2)
-            
+
             # Height scale grows cumulatively
             height_scale = step_height * (i + 1)
-            
+
             # Y position needs to be offset by half the height since cube position is at center
             y_pos = start_position.y + (height_scale / 2)
-            
+
             z_pos = start_position.z
-            
+
             stair = CubeObj(
                 Vector(1, 1, 1),
                 Vector(x_pos, y_pos, z_pos),
@@ -562,7 +606,7 @@ class GraphicsProgram3D:
                 self.model_matrix,
                 scale=Vector(step_width, height_scale, step_depth),
                 stairs=True,
-                bound_one = True
+                bound_one=True,
             )
             self.objects.append(stair)
 
@@ -614,7 +658,6 @@ class GraphicsProgram3D:
         self.objects.append(pressure_plate_three)
         self.pressure_plate_three = pressure_plate_three
 
-
         # Ground
         ground = CubeObj(
             Vector(1, 1, 1),
@@ -624,6 +667,7 @@ class GraphicsProgram3D:
             scale=Vector(20, 0.5, 40),
             texture=self.texture_floor,
             texture_spec=self.texture_floor,
+            ambient=Vector(1, 1, 1),
         )
         self.objects.append(ground)
 
@@ -641,7 +685,7 @@ class GraphicsProgram3D:
         # Ceiling
         ceiling = CubeObj(
             Vector(0.4, 0.4, 0.4),
-            Vector(0, 15, 0),
+            Vector(20, 15, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(80, 0.5, 40),
@@ -657,6 +701,7 @@ class GraphicsProgram3D:
             scale=Vector(0.5, 16, 40),
             texture=self.texture_wall,
             texture_spec=self.texture_wall,
+            wall=True,
         )
         self.objects.append(right_wall)
 
@@ -669,6 +714,7 @@ class GraphicsProgram3D:
             scale=Vector(0.5, 16, 40),
             texture=self.texture_wall,
             texture_spec=self.texture_wall,
+            wall=True,
         )
         self.objects.append(left_wall)
 
@@ -681,6 +727,7 @@ class GraphicsProgram3D:
             scale=Vector(80, 16, 0.5),
             texture=self.texture_wall,
             texture_spec=self.texture_wall,
+            wall=True,
         )
         self.objects.append(back_wall)
 
@@ -693,20 +740,21 @@ class GraphicsProgram3D:
             scale=Vector(80, 16, 0.5),
             texture=self.texture_wall,
             texture_spec=self.texture_wall,
+            wall=True,
         )
         self.objects.append(front_wall)
 
         # Stairs
-        self.create_stairs(Vector(0, -1.7, 18), 10,2, 8, 1)
+        self.create_stairs(Vector(0, -1.7, 18), 10, 2, 8, 1)
 
         # walkway from stairs
         walk_way = CubeObj(
             Vector(1, 1, 1),
-            Vector(14, 8.05, 18),
+            Vector(16, 8.05, 18),
             self.shader,
             self.model_matrix,
-            scale=Vector(10, 0.5, 8),
-            bound_one=True
+            scale=Vector(13, 0.5, 8),
+            bound_one=True,
         )
         self.objects.append(walk_way)
 
@@ -729,8 +777,8 @@ class GraphicsProgram3D:
             Vector(10, -2, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(20, 0.5, 8),
-            bound_two=True
+            scale=Vector(20, 0.5, 10),
+            bound_two=True,
         )
         self.objects.append(walk_way_escape)
         walk_way_escape_two = CubeObj(
@@ -738,14 +786,13 @@ class GraphicsProgram3D:
             Vector(30, -2, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(20, 0.5, 8),
-            bound_three=True
+            scale=Vector(20, 0.5, 10),
+            bound_three=True,
         )
         self.objects.append(walk_way_escape_two)
         for object in self.objects:
             if object.collisions:
                 self.colliding_objects.append(object)
-                
 
     def program_loop(self):
         exiting = False
