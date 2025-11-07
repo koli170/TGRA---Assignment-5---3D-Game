@@ -15,6 +15,17 @@ from Matrices import *
 from ojb_3D_loading import *
 
 
+def bezier(t, points):
+    old_points = points
+    while True:
+        new_points = []
+        for i in range(len(old_points) - 1):
+            new_points.append(old_points[i] * (1 - t) + old_points[i + 1] * t)
+        if len(new_points) == 1:
+            return new_points[0]
+        old_points = new_points
+
+
 class Object:
     def __init__(
         self,
@@ -254,6 +265,23 @@ class GraphicsProgram3D:
         self.UP_key_down = False
         self.white_background = False
 
+        self.lava_timer = 0
+        self.lava_object = None
+
+        self.lava_points_1 = [
+            Vector(30, -2.5, 0),
+            Vector(30, -2.5, 10),
+            Vector(20, -2.5, 10),
+            Vector(20, -2.5, 0),
+        ]
+
+        self.lava_points_2 = [
+            Vector(20, -2.5, 0),
+            Vector(20, -2.5, -10),
+            Vector(10, -2.5, -10),
+            Vector(10, -2.5, 0),
+        ]
+
         self.texture_id_01 = self.load_texture("Textures/companioncube_uv.png")
         self.texture_id_02 = self.load_texture("Textures/FNM_KingForADay.jpg")
         self.texture_id_03 = self.load_texture("Textures/returnofthespacecowboy.jpg")
@@ -297,6 +325,9 @@ class GraphicsProgram3D:
         if delta_time > 0.1:
             return
         self.my_clock += delta_time
+        self.lava_timer += delta_time * 0.20
+        if self.lava_timer > 2:
+            self.lava_timer -= 2
 
         if self.pressure_plate_one != None:
             self.pressure_plate_one_pressed = self.pressure_plate_one.pressed_on
@@ -338,6 +369,11 @@ class GraphicsProgram3D:
         self.shader.set_light_position(0, Vector(0, 5, 0))
         self.shader.set_light_specular(0, 0.4, 0.4, 0.4)
         self.shader.set_light_ambient(0, 0.3, 0.3, 0.3)
+
+        if self.lava_timer > 1:
+            self.lava_object.position = bezier(self.lava_timer - 1, self.lava_points_2)
+        else:
+            self.lava_object.position = bezier(self.lava_timer, self.lava_points_1)
 
         self.model_matrix.load_identity()
         self.draw_scene()
@@ -771,12 +807,13 @@ class GraphicsProgram3D:
             Vector(20, -2.5, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(40, 0.5, 40),
+            scale=Vector(80, 0.5, 80),
             texture=self.texture_lava_large,
             texture_spec=self.texture_lava_large,
             skip_light=True,
         )
         self.objects.append(lava)
+        self.lava_object = lava
 
         tryggvi_cube_two = CubeObj(
             Vector(1, 1, 1),
