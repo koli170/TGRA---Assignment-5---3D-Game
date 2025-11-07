@@ -113,13 +113,7 @@ class CubeObj(Object):
         bound_one=False,
         bound_two=False,
         bound_three=False,
-        wall=False,
         friction=1,
-        ambient=Vector(
-            0,
-            0,
-            0,
-        ),
     ):
         super().__init__(
             RGB,
@@ -255,6 +249,7 @@ class GraphicsProgram3D:
         self.texture_id_03 = self.load_texture("Textures/returnofthespacecowboy.jpg")
         self.texture_wall = self.load_texture("Textures/TGRAF-WALL.png")
         self.texture_floor = self.load_texture("Textures/TGRAF-GOLF.png")
+        self.texture_bridge = self.load_texture("Textures/TGRAF-BRIDGE.png")
 
         self.create_obj()
 
@@ -753,7 +748,7 @@ class GraphicsProgram3D:
             Vector(16, 8.05, 18),
             self.shader,
             self.model_matrix,
-            scale=Vector(13, 0.5, 8),
+            scale=Vector(10, 0.5, 8),
             bound_one=True,
         )
         self.objects.append(walk_way)
@@ -777,7 +772,7 @@ class GraphicsProgram3D:
             Vector(10, -2, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(20, 0.5, 10),
+            scale=Vector(20, 0.5, 8),
             bound_two=True,
         )
         self.objects.append(walk_way_escape)
@@ -786,7 +781,7 @@ class GraphicsProgram3D:
             Vector(30, -2, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(20, 0.5, 10),
+            scale=Vector(20, 0.5, 8),
             bound_three=True,
         )
         self.objects.append(walk_way_escape_two)
