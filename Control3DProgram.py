@@ -36,6 +36,7 @@ class Object:
         bound_two=False,
         bound_three=False,
         ambient=Vector(0, 0, 0),
+        skip_light=False,
     ):
         self.RGB = RGB
         self.scale = scale
@@ -58,9 +59,14 @@ class Object:
         self.bound_two = bound_two
         self.bound_three = bound_three
         self.ambient = ambient
+        self.skip_light = skip_light
 
     def draw(self):
         self.model_matrix.push_matrix()
+        if self.skip_light:
+            self.shader.set_use_lighting(1)
+        else:
+            self.shader.set_use_lighting(0)
         if self.texture != None:
             self.shader.set_use_texture(True)
             glActiveTexture(GL_TEXTURE0)
@@ -116,6 +122,7 @@ class CubeObj(Object):
         friction=1,
         ambient=Vector(0, 0, 0),
         wall=False,
+        skip_light=False,
     ):
         super().__init__(
             RGB,
@@ -136,6 +143,7 @@ class CubeObj(Object):
             bound_two=bound_two,
             bound_three=bound_three,
             ambient=ambient,
+            skip_light=skip_light,
         )
         self.pressure_plate = pressure_plate
         self.pressed_on = pressed_on
@@ -252,6 +260,8 @@ class GraphicsProgram3D:
         self.texture_wall = self.load_texture("Textures/TGRAF-WALL.png")
         self.texture_floor = self.load_texture("Textures/TGRAF-GOLF.png")
         self.texture_bridge = self.load_texture("Textures/TGRAF-BRIDGE.png")
+        self.texture_lava = self.load_texture("Textures/TGRAF-LAVA.png")
+        self.texture_lava_large = self.load_texture("Textures/TGRAF-LAVA_LARGE.png")
 
         self.create_obj()
 
@@ -754,6 +764,19 @@ class GraphicsProgram3D:
             bound_one=True,
         )
         self.objects.append(walk_way)
+
+        # lava
+        lava = CubeObj(
+            Vector(1, 1, 1),
+            Vector(20, -2.5, 0),
+            self.shader,
+            self.model_matrix,
+            scale=Vector(40, 0.5, 40),
+            texture=self.texture_lava_large,
+            texture_spec=self.texture_lava_large,
+            skip_light=True,
+        )
+        self.objects.append(lava)
 
         tryggvi_cube_two = CubeObj(
             Vector(1, 1, 1),

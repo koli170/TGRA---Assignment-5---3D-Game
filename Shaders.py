@@ -54,6 +54,10 @@ class Shader3D:
             self.renderingProgramID, "u_use_texture"
         )
 
+        self.useLightingCalc = glGetUniformLocation(
+            self.renderingProgramID, "u_skip_light_calc"
+        )
+
         self.modelMatrixLoc = glGetUniformLocation(
             self.renderingProgramID, "u_model_matrix"
         )
@@ -174,6 +178,9 @@ class Shader3D:
 
     def set_use_texture(self, use_it):
         glUniform1i(self.useTextureLoc, 1 if use_it else 0)
+
+    def set_use_lighting(self, use_it):
+        glUniform1i(self.useLightingCalc, 1 if use_it else 0)
 
     def set_position_attribute(self, vertex_array):
         glVertexAttribPointer(self.positionLoc, 3, GL_FLOAT, False, 0, vertex_array)
