@@ -113,7 +113,9 @@ class CubeObj(Object):
         bound_one=False,
         bound_two=False,
         bound_three=False,
+        ambient=Vector(0, 0, 0),
         friction=1,
+        wall=False,
     ):
         super().__init__(
             RGB,
@@ -748,7 +750,7 @@ class GraphicsProgram3D:
             Vector(16, 8.05, 18),
             self.shader,
             self.model_matrix,
-            scale=Vector(10, 0.5, 8),
+            scale=Vector(12, 0.5, 8),
             bound_one=True,
         )
         self.objects.append(walk_way)
