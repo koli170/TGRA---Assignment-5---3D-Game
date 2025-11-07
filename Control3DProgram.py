@@ -239,6 +239,7 @@ class GraphicsProgram3D:
         self.colliding_objects = []
         self.sphere = Sphere(8, 16)
         self.cube = Cube()
+        self.triforce = TriForce()
         self.tryggvi_cube = load_obj_file("MeshModelAddon/models", "NEWTRYGGVICUBE.obj")
         self.tryggvi_cube.set_opengl_buffers()
 
@@ -380,7 +381,7 @@ class GraphicsProgram3D:
         (
             glClearColor(1.0, 1.0, 1.0, 1.0)
             if self.white_background
-            else glClearColor(0, 0, 1, 1)
+            else glClearColor(0, 0, 0.4, 1)
         )
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glViewport(0, 0, self.width, self.height)
@@ -546,7 +547,15 @@ class GraphicsProgram3D:
             found_floor_object = False
             colliding_object.friction = 10
             for object in self.objects:
-                if object == colliding_object:
+                if (
+                    object == colliding_object
+                    or (object.bound_two and self.pressure_plate_two_pressed == False)
+                    or (object.bound_one and self.pressure_plate_one_pressed == False)
+                    or (
+                        object.bound_three
+                        and self.pressure_plate_three_pressed == False
+                    )
+                ):
                     continue
 
                 min_y = inf
@@ -626,11 +635,12 @@ class GraphicsProgram3D:
                             if object.lava:
                                 if colliding_object == self.cube_one:
                                     colliding_object.position = (
-                                        self.original_cubeone_position
+                                        self.original_cubeone_position.copy()
                                     )
+
                                 elif colliding_object == self.cube_two:
                                     colliding_object.position = (
-                                        self.original_cubetwo_position
+                                        self.original_cubetwo_position.copy()
                                     )
                             found_floor_object = True
                             colliding_object.velocity.y = 0
@@ -668,6 +678,16 @@ class GraphicsProgram3D:
             ):
                 continue
             object.draw()
+        self.triforce.set_vertices(self.shader)
+        self.model_matrix.push_matrix()
+        self.shader.set_use_texture(False)
+        self.shader.set_use_lighting(1)
+        self.model_matrix.add_translation(42, 2, 0)
+        self.shader.set_material_diffuse(1, 1, 0)
+        self.shader.set_material_ambient(1, 1, 0)
+        self.shader.set_model_matrix(self.model_matrix.matrix)
+        self.triforce.draw(self.shader)
+        self.model_matrix.pop_matrix()
 
     def create_stairs(
         self, start_position, num_steps, step_width, step_depth, step_height
@@ -768,16 +788,6 @@ class GraphicsProgram3D:
         )
         self.objects.append(ground)
 
-        # Ceiling
-        ceiling = CubeObj(
-            Vector(0.4, 0.4, 0.4),
-            Vector(20, 15, 0),
-            self.shader,
-            self.model_matrix,
-            scale=Vector(80, 0.5, 40),
-        )
-        self.objects.append(ceiling)
-
         # Front wall
         right_wall = CubeObj(
             Vector(1, 1, 1),
@@ -840,7 +850,6 @@ class GraphicsProgram3D:
             self.shader,
             self.model_matrix,
             scale=Vector(12, 0.5, 8),
-            bound_one=True,
         )
         self.objects.append(walk_way)
 
@@ -927,9 +936,6 @@ class GraphicsProgram3D:
         self.touching_lava = False
         self.gravity = -40
         self.death_timer = 0
-
-        # Reset camera
-        self.main_view_matrix.look(Vector(0, 0, 0))
 
     def program_loop(self):
         exiting = False
