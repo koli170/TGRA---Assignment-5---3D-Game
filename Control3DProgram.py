@@ -674,6 +674,12 @@ class GraphicsProgram3D:
                                 colliding_object.velocity.z += 11000 * delta_time
                                 colliding_object.friction = 0.5
             colliding_object.touching_floor = found_floor_object
+        for object in self.objects:
+            if object.pressure_plate:
+                if object.pressed_on:
+                    object.position.y = -1.8
+                else:
+                    object.position.y = -1.5
 
     def draw_scene(self):
         for object in self.objects:
@@ -691,6 +697,7 @@ class GraphicsProgram3D:
         self.model_matrix.add_translation(42, 2, 0)
         self.shader.set_material_diffuse(1, 1, 0)
         self.shader.set_material_ambient(1, 1, 0)
+        self.model_matrix.add_rotation_y(self.angle * 0.2)
         self.shader.set_model_matrix(self.model_matrix.matrix)
         self.triforce.draw(self.shader)
         self.model_matrix.pop_matrix()
@@ -710,7 +717,7 @@ class GraphicsProgram3D:
             z_pos = start_position.z
 
             stair = CubeObj(
-                Vector(1, 1, 1),
+                Vector(0.4, 0.4, 0.4),
                 Vector(x_pos, y_pos, z_pos),
                 self.shader,
                 self.model_matrix,
@@ -852,7 +859,7 @@ class GraphicsProgram3D:
 
         # walkway from stairs
         walk_way = CubeObj(
-            Vector(1, 1, 1),
+            Vector(0.4, 0.4, 0.4),
             Vector(16, 8.05, 18),
             self.shader,
             self.model_matrix,
