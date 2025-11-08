@@ -137,6 +137,11 @@ class CubeObj(Object):
         wall=False,
         skip_light=False,
         lava=False,
+        pressure_timer=0.1,
+        timer=0,
+        timer_set=False,
+        timer_set_negative=False,
+        pressing=None,
     ):
         super().__init__(
             RGB,
@@ -164,6 +169,11 @@ class CubeObj(Object):
         self.pressed_on = pressed_on
         self.friction = friction
         self.wall = wall
+        self.timer = timer
+        self.pressure_timer = pressure_timer
+        self.timer_set = timer_set
+        self.timer_set_negative = timer_set_negative
+        self.pressing = pressing
 
     def pressed(self):
         if self.pressed_on:
@@ -453,7 +463,6 @@ class GraphicsProgram3D:
         for object in self.objects:
             if object.pressure_plate:
                 object.pressed_on = False
-                object.pressed()
             if (
                 (object.bound_one and self.pressure_plate_one_pressed == False)
                 or (object.bound_two and self.pressure_plate_two_pressed == False)
@@ -526,7 +535,7 @@ class GraphicsProgram3D:
                         else:
                             if object.pressure_plate:
                                 object.pressed_on = True
-                                object.pressed()
+                                object.pressing = self.player
                             self.player.y = max_y + player_half_height
                             found_floor = True
                             self.floor_player_touching = object
@@ -637,7 +646,7 @@ class GraphicsProgram3D:
                             )
                             if object.pressure_plate:
                                 object.pressed_on = True
-                                object.pressed()
+                                object.pressing = colliding_object
                             if object.lava:
                                 if colliding_object == self.cube_one:
                                     colliding_object.position = (
@@ -676,10 +685,30 @@ class GraphicsProgram3D:
             colliding_object.touching_floor = found_floor_object
         for object in self.objects:
             if object.pressure_plate:
+                # If pressed, count up timer
                 if object.pressed_on:
-                    object.position.y = -1.8
+                    object.timer += delta_time
+                    # Once timer exceeds threshold, lock plate down
+                    if object.timer >= object.pressure_timer:
+                        object.position.y = -1.8
+                        try:
+                            object.pressing.y -= 0.3
+                        except:
+                            pass
+                        try:
+                            object.pressing.position.y -= 0.1
+                        except:
+                            pass
+                        object.pressed_on = True
+                        object.pressed()
+                # If not pressed, count down timer
                 else:
-                    object.position.y = -1.5
+                    object.timer -= delta_time
+                    # Once timer reaches zero, unlock plate up
+                    if object.timer <= 0:
+                        object.timer = 0
+                        object.position.y = -1.5
+                        object.pressed()
 
     def draw_scene(self):
         for object in self.objects:
