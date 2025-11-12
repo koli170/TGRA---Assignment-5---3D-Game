@@ -233,6 +233,8 @@ class GraphicsProgram3D:
         self.projection_matrix = ProjectionMatrix()
         self.minimap_projection_matrix = ProjectionMatrix()
 
+        self.triforce_loc = Vector(42, 2, 0)
+
         self.controlling_player = True
 
         # Camera setup
@@ -363,7 +365,7 @@ class GraphicsProgram3D:
             self.reset()
         if self.touching_lava:
             self.death_timer += delta_time
-        self.lava_timer += delta_time * 0.20
+        self.lava_timer += delta_time * 0.1
         if self.lava_timer > 2:
             self.lava_timer -= 2
 
@@ -403,7 +405,7 @@ class GraphicsProgram3D:
         self.shader.set_eye_position(self.main_view_matrix.eye)
 
         # Basic light settings
-        self.shader.set_num_lights(2)
+        self.shader.set_num_lights(4)
         self.shader.set_light_diffuse(0, 0.7, 0.7, 0.7)
         self.shader.set_light_position(0, Vector(0, 5, 0))
         self.shader.set_light_specular(0, 0.4, 0.4, 0.4)
@@ -413,6 +415,11 @@ class GraphicsProgram3D:
         self.shader.set_light_position(1, Vector(55, 5, 0))
         self.shader.set_light_specular(1, 0.4, 0.4, 0.4)
         self.shader.set_light_ambient(1, 0.3, 0.3, 0.3)
+
+        self.shader.set_light_diffuse(3, 0.7, 0.4, 0.0)
+        self.shader.set_light_position(3, Vector(10, 2, 0))
+        self.shader.set_light_specular(3, 0.7, 0.4, 0)
+        self.shader.set_light_ambient(3, 1, 0.8, 0)
 
         if self.lava_timer > 1:
             self.lava_object.position = bezier(self.lava_timer - 1, self.lava_points_2)
@@ -431,6 +438,10 @@ class GraphicsProgram3D:
 
         player_half_size = 1.0
         player_half_height = 3.0
+
+        if self.player == self.triforce_loc:
+            print("hey")
+
         for colliding_object in self.colliding_objects:
             if colliding_object.gravity:
                 colliding_object.velocity.y = (
@@ -685,30 +696,7 @@ class GraphicsProgram3D:
             colliding_object.touching_floor = found_floor_object
         for object in self.objects:
             if object.pressure_plate:
-                # If pressed, count up timer
-                if object.pressed_on:
-                    object.timer += delta_time
-                    # Once timer exceeds threshold, lock plate down
-                    if object.timer >= object.pressure_timer:
-                        object.position.y = -1.8
-                        try:
-                            object.pressing.y -= 0.3
-                        except:
-                            pass
-                        try:
-                            object.pressing.position.y -= 0.1
-                        except:
-                            pass
-                        object.pressed_on = True
-                        object.pressed()
-                # If not pressed, count down timer
-                else:
-                    object.timer -= delta_time
-                    # Once timer reaches zero, unlock plate up
-                    if object.timer <= 0:
-                        object.timer = 0
-                        object.position.y = -1.5
-                        object.pressed()
+                object.pressed()
 
     def draw_scene(self):
         for object in self.objects:
@@ -723,7 +711,9 @@ class GraphicsProgram3D:
         self.model_matrix.push_matrix()
         self.shader.set_use_texture(False)
         self.shader.set_use_lighting(1)
-        self.model_matrix.add_translation(42, 2, 0)
+        self.model_matrix.add_translation(
+            self.triforce_loc.x, self.triforce_loc.y, self.triforce_loc.z
+        )
         self.shader.set_material_diffuse(1, 1, 0)
         self.shader.set_material_ambient(1, 1, 0)
         self.model_matrix.add_rotation_y(self.angle * 0.2)
