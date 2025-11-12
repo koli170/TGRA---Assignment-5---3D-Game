@@ -49,6 +49,7 @@ class Object:
         ambient=Vector(0, 0, 0),
         skip_light=False,
         lava=False,
+        transparent=False,
     ):
         self.RGB = RGB
         self.scale = scale
@@ -73,6 +74,7 @@ class Object:
         self.ambient = ambient
         self.skip_light = skip_light
         self.lava = lava
+        self.transparent = transparent
 
     def draw(self):
         self.model_matrix.push_matrix()
@@ -106,6 +108,11 @@ class Object:
             self.model_matrix.add_rotation_z(self.rotation)
         self.model_matrix.add_scale(self.scale.x, self.scale.y, self.scale.z)
         self.shader.set_model_matrix(self.model_matrix.matrix)
+        if self.transparent:
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        else:
+            glDisable(GL_BLEND)
         self.cube.draw(self.shader)
         self.model_matrix.pop_matrix()
 
@@ -142,6 +149,7 @@ class CubeObj(Object):
         timer_set=False,
         timer_set_negative=False,
         pressing=None,
+        transparent=False,
     ):
         super().__init__(
             RGB,
@@ -164,6 +172,7 @@ class CubeObj(Object):
             ambient=ambient,
             skip_light=skip_light,
             lava=lava,
+            transparent=transparent,
         )
         self.pressure_plate = pressure_plate
         self.pressed_on = pressed_on
@@ -705,7 +714,9 @@ class GraphicsProgram3D:
                 or (self.pressure_plate_two_pressed == False and object.bound_two)
                 or (self.pressure_plate_three_pressed == False and object.bound_three)
             ):
-                continue
+                object.transparent = True
+            else:
+                object.transparent = False
             object.draw()
         self.triforce.set_vertices(self.shader)
         self.model_matrix.push_matrix()
@@ -737,10 +748,10 @@ class GraphicsProgram3D:
 
             stair = CubeObj(
                 Vector(0.4, 0.4, 0.4),
-                Vector(x_pos, y_pos, z_pos),
+                Vector(x_pos + (step_width / 8.0), y_pos, z_pos),
                 self.shader,
                 self.model_matrix,
-                scale=Vector(step_width, height_scale, step_depth),
+                scale=Vector(step_width / 2.0, height_scale, step_depth),
                 stairs=True,
                 bound_one=True,
             )
@@ -873,13 +884,10 @@ class GraphicsProgram3D:
         )
         self.objects.append(front_wall)
 
-        # Stairs
-        self.create_stairs(Vector(0, -1.7, 18), 10, 2, 8, 1)
-
         # walkway from stairs
         walk_way = CubeObj(
             Vector(0.4, 0.4, 0.4),
-            Vector(16, 8.05, 18),
+            Vector(15.755, 8.05, 18),
             self.shader,
             self.model_matrix,
             scale=Vector(12, 0.5, 8),
@@ -922,7 +930,7 @@ class GraphicsProgram3D:
             Vector(10, -2, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(20, 0.5, 8),
+            scale=Vector(20, 0.3, 8),
             bound_two=True,
             texture=self.texture_bridge,
             texture_spec=self.texture_bridge,
@@ -934,13 +942,17 @@ class GraphicsProgram3D:
             Vector(30, -2, 0),
             self.shader,
             self.model_matrix,
-            scale=Vector(20, 0.5, 8),
+            scale=Vector(20, 0.3, 8),
             bound_three=True,
             texture=self.texture_bridge,
             texture_spec=self.texture_bridge,
             ambient=Vector(1, 1, 1),
         )
         self.objects.append(walk_way_escape_two)
+
+        # Stairs
+        self.create_stairs(Vector(0, -1.7, 18), 10, 2, 8, 1)
+
         for object in self.objects:
             if object.collisions:
                 self.colliding_objects.append(object)
