@@ -411,51 +411,6 @@ class Sphere:
             glDrawArrays(GL_TRIANGLE_STRIP, i, verts_per_strip)
 
 
-from math import sin, cos, pi
-from OpenGL.GL import *
-
-
-from math import pi, sin, cos, sqrt
-from OpenGL.GL import *
-
-
-class Emerald:
-    def __init__(self, stacks=4, slices=8, height=1.0, radius=0.5):
-        self.vertex_array = []
-        self.vertex_count = 0
-        self.slices = slices
-
-        for stack in range(stacks):
-            y0 = height / 2 - (stack * height / stacks)
-            y1 = height / 2 - ((stack + 1) * height / stacks)
-
-            r0 = radius * (1 - abs(y0) / (height / 2))
-            r1 = radius * (1 - abs(y1) / (height / 2))
-
-            for slice in range(slices + 1):
-                theta = slice * 2 * pi / slices
-                x0 = r0 * cos(theta)
-                z0 = r0 * sin(theta)
-                x1 = r1 * cos(theta)
-                z1 = r1 * sin(theta)
-
-                if stack == 0:
-                    y0 = height / stacks
-                self.vertex_array.extend([x0, y0, z0])
-                self.vertex_array.extend([x1, y1, z1])
-                self.vertex_count += 2
-
-    def set_vertices(self, shader):
-        shader.set_position_attribute(self.vertex_array)
-        shader.set_normal_attribute(self.vertex_array)
-
-    def draw(self, shader):
-        self.set_vertices(shader)
-        verts_per_strip = (self.slices + 1) * 2
-        for i in range(0, self.vertex_count, verts_per_strip):
-            glDrawArrays(GL_TRIANGLE_STRIP, i, verts_per_strip)
-
-
 class MeshModel:
     def __init__(self):
         self.vertex_arrays = dict()
