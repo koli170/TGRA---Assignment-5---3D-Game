@@ -70,6 +70,8 @@ void main(void)
 			vec4 tex_color2 = texture2D(u_tex02, v_uv);
 			color = color * tex_color * tex_color2;
 		}
+
+		color[3] = 0.3;
 		
 		gl_FragColor = color;
 	}
