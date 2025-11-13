@@ -26,6 +26,25 @@ def bezier(t, points):
         old_points = new_points
 
 
+class ColorTransition:
+    def __init__(self):
+        self.current_rgb = [randrange(256), randrange(256), randrange(256)]
+        self.target_rgb = [randrange(256), randrange(256), randrange(256)]
+        self.speed = 1  
+
+    def update(self):
+        for i in range(3): 
+            if self.current_rgb[i] < self.target_rgb[i]:
+                self.current_rgb[i] = min(self.current_rgb[i] + self.speed, self.target_rgb[i])
+            elif self.current_rgb[i] > self.target_rgb[i]:
+                self.current_rgb[i] = max(self.current_rgb[i] - self.speed, self.target_rgb[i])
+        
+
+        if self.current_rgb == self.target_rgb:
+            self.target_rgb = [randrange(256), randrange(256), randrange(256)]
+
+        return tuple(self.current_rgb)
+
 class Object:
     def __init__(
         self,
@@ -265,6 +284,9 @@ class GraphicsProgram3D:
         self.tryggvi_cube = load_obj_file("MeshModelAddon/models", "NEWTRYGGVICUBE.obj")
         self.tryggvi_cube.set_opengl_buffers()
 
+        self.won = False
+        self.rgb = ColorTransition()
+
         # Time control
         self.my_clock = 0
         self.clock = pygame.time.Clock()
@@ -295,6 +317,8 @@ class GraphicsProgram3D:
 
         self.pressure_plate_three_pressed = False
         self.pressure_plate_three = None
+
+        self.count = 0
 
         self.touching_lava = False
 
@@ -390,6 +414,7 @@ class GraphicsProgram3D:
         self.rot_step = self.rotation_speed * delta_time
         self.move_step = self.move_speed * delta_time
 
+
         if self.jumping:
             self.time_jumped += delta_time
             self.player.y += self.jump_speed * delta_time
@@ -437,7 +462,10 @@ class GraphicsProgram3D:
             self.lava_object.position = bezier(self.lava_timer, self.lava_points_1)
 
         self.model_matrix.load_identity()
-        self.draw_scene()
+        if self.won:
+            self.draw_text_2d("HAPPY", self.width/2 - 600, self.height/2 + 200, 400, self.rgb.update())
+        if self.won == False:
+            self.draw_scene()
 
         pygame.display.flip()
     def draw_text_2d(self, text, x, y, size=36, color=(255, 255, 255)):
@@ -487,7 +515,8 @@ class GraphicsProgram3D:
 
         triforce_rad = 3
         if (self.triforce_loc.x - triforce_rad < self.player.x < self.triforce_loc.x + triforce_rad) and (self.triforce_loc.z - triforce_rad < self.player.z < self.triforce_loc.z + triforce_rad):
-            self.draw_text_2d("HAPPY", self.width/2, self.height/2)
+            self.won = True
+            self.touching_lava = True
 
         for colliding_object in self.colliding_objects:
             if colliding_object.gravity:
@@ -1052,15 +1081,15 @@ class GraphicsProgram3D:
                 )
 
                 self.relative_mouse_movement = (0, 0, 0)
-
-            if keys[pygame.K_w] and self.touching_lava == False:
-                self.main_view_matrix.walk(0, 0, -self.move_step)
-            if keys[pygame.K_s] and self.touching_lava == False:
-                self.main_view_matrix.walk(0, 0, self.move_step)
-            if keys[pygame.K_a] and self.touching_lava == False:
-                self.main_view_matrix.walk(-self.move_step, 0, 0)
-            if keys[pygame.K_d] and self.touching_lava == False:
-                self.main_view_matrix.walk(self.move_step, 0, 0)
+            if self.won == False:
+                if keys[pygame.K_w] and self.touching_lava == False:
+                    self.main_view_matrix.walk(0, 0, -self.move_step)
+                if keys[pygame.K_s] and self.touching_lava == False:
+                    self.main_view_matrix.walk(0, 0, self.move_step)
+                if keys[pygame.K_a] and self.touching_lava == False:
+                    self.main_view_matrix.walk(-self.move_step, 0, 0)
+                if keys[pygame.K_d] and self.touching_lava == False:
+                    self.main_view_matrix.walk(self.move_step, 0, 0)
 
             # EVENT HANDLING
             for event in pygame.event.get():
