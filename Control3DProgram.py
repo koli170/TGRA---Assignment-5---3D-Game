@@ -76,6 +76,7 @@ class Object:
         self.lava = lava
         self.transparent = transparent
 
+
     def draw(self):
         self.model_matrix.push_matrix()
         if self.skip_light:
@@ -242,7 +243,7 @@ class GraphicsProgram3D:
         self.projection_matrix = ProjectionMatrix()
         self.minimap_projection_matrix = ProjectionMatrix()
 
-        self.triforce_loc = Vector(42, 2, 0)
+        self.triforce_loc = Vector(50, 2, 0)
 
         self.controlling_player = True
 
@@ -279,7 +280,7 @@ class GraphicsProgram3D:
         self.jump_speed = 20
         self.jump_duration = 0.2
         self.time_jumped = 0
-        self.push_force = 40
+        self.push_force = 20
         self.relative_mouse_movement = (0, 0, 0)
         self.mouse_movement = Vector(0, 0, 0)
         self.mouse_sens = 0.1
@@ -439,6 +440,42 @@ class GraphicsProgram3D:
         self.draw_scene()
 
         pygame.display.flip()
+    def draw_text_2d(self, text, x, y, size=36, color=(255, 255, 255)):
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+        glOrtho(0, self.width, self.height, 0, -1, 1)
+
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+
+        glUseProgram(0)
+
+        font = pygame.font.SysFont("ocraextended", size, False)
+        text_surface = font.render(text, True, color)
+        text_data = pygame.image.tostring(text_surface, "RGBA", True)
+
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+        glRasterPos2f(x, y)
+        glDrawPixels(
+            text_surface.get_width(),
+            text_surface.get_height(),
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            text_data,
+        )
+
+        glDisable(GL_BLEND)
+
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
+        glPopMatrix()
+
+        self.shader.use()
 
     def handle_physics(self):
         delta_time = self.clock.get_time() / 1000.0
@@ -448,8 +485,9 @@ class GraphicsProgram3D:
         player_half_size = 1.0
         player_half_height = 3.0
 
-        if self.player == self.triforce_loc:
-            print("hey")
+        triforce_rad = 3
+        if (self.triforce_loc.x - triforce_rad < self.player.x < self.triforce_loc.x + triforce_rad) and (self.triforce_loc.z - triforce_rad < self.player.z < self.triforce_loc.z + triforce_rad):
+            self.draw_text_2d("HAPPY", self.width/2, self.height/2)
 
         for colliding_object in self.colliding_objects:
             if colliding_object.gravity:
@@ -580,7 +618,7 @@ class GraphicsProgram3D:
 
         for colliding_object in self.colliding_objects:
             found_floor_object = False
-            colliding_object.friction = 10
+            colliding_object.friction = 3
             for object in self.objects:
                 if (
                     object == colliding_object
@@ -717,7 +755,8 @@ class GraphicsProgram3D:
                 object.transparent = True
             else:
                 object.transparent = False
-            object.draw()
+            if object.transparent == False:
+                object.draw()
         self.triforce.set_vertices(self.shader)
         self.model_matrix.push_matrix()
         self.shader.set_use_texture(False)
@@ -731,6 +770,9 @@ class GraphicsProgram3D:
         self.shader.set_model_matrix(self.model_matrix.matrix)
         self.triforce.draw(self.shader)
         self.model_matrix.pop_matrix()
+        for object in self.objects:
+            if object.transparent:
+                object.draw()
 
     def create_stairs(
         self, start_position, num_steps, step_width, step_depth, step_height
