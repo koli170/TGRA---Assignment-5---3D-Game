@@ -1,21 +1,21 @@
 # TGRA---Assignment-5---3D-Game
 
-### TODO/Requirements
-1. Render meshes made from blender
-2. Lighting
-    - Colors
-    - Motion
-3. Textures
-4. Transparency and blending
-5. Billboarding
-6. collisions
-    - Cube technology
-7. Puzzle room
-8. Meshes (companion, pressure plate etc)
-9. Game state and win conditions.
-10. Smooth movement and camera controls.
+### How to run
+Unzip the zip file. Make sure you are located in the ‘TGRA—Assignment-5—3D-Game’ and simply run the ‘Control3DProgram.py’ file.
 
 
+### Controls
 
-### Optional/Last
-1. Smooth motion
+The game features a simple control scheme that can be seen in the list below.
+
+
+* Forward: W
+* Left: A
+* Backwards: S
+* Right: D
+* Camera: Arrow Keys / Mouse
+* Jump: Space
+* Quit: ESC
+
+## Credits
+Tryggvi Ólafsson, Kristján Orri Leifsson
