@@ -927,7 +927,7 @@ class GraphicsProgram3D:
 
         walk_way_escape = CubeObj(
             Vector(1, 1, 1),
-            Vector(10, -2, 0),
+            Vector(10, -1.9, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(20, 0.3, 8),
@@ -939,7 +939,7 @@ class GraphicsProgram3D:
         self.objects.append(walk_way_escape)
         walk_way_escape_two = CubeObj(
             Vector(1, 1, 1),
-            Vector(30, -2, 0),
+            Vector(30, -1.9, 0),
             self.shader,
             self.model_matrix,
             scale=Vector(20, 0.3, 8),
