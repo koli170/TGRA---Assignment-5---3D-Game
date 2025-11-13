@@ -30,20 +30,24 @@ class ColorTransition:
     def __init__(self):
         self.current_rgb = [randrange(256), randrange(256), randrange(256)]
         self.target_rgb = [randrange(256), randrange(256), randrange(256)]
-        self.speed = 1  
+        self.speed = 1
 
     def update(self):
-        for i in range(3): 
+        for i in range(3):
             if self.current_rgb[i] < self.target_rgb[i]:
-                self.current_rgb[i] = min(self.current_rgb[i] + self.speed, self.target_rgb[i])
+                self.current_rgb[i] = min(
+                    self.current_rgb[i] + self.speed, self.target_rgb[i]
+                )
             elif self.current_rgb[i] > self.target_rgb[i]:
-                self.current_rgb[i] = max(self.current_rgb[i] - self.speed, self.target_rgb[i])
-        
+                self.current_rgb[i] = max(
+                    self.current_rgb[i] - self.speed, self.target_rgb[i]
+                )
 
         if self.current_rgb == self.target_rgb:
             self.target_rgb = [randrange(256), randrange(256), randrange(256)]
 
         return tuple(self.current_rgb)
+
 
 class Object:
     def __init__(
@@ -94,7 +98,6 @@ class Object:
         self.skip_light = skip_light
         self.lava = lava
         self.transparent = transparent
-
 
     def draw(self):
         self.model_matrix.push_matrix()
@@ -351,9 +354,6 @@ class GraphicsProgram3D:
             Vector(10, -2.5, 0),
         ]
 
-        self.texture_id_01 = self.load_texture("Textures/companioncube_uv.png")
-        self.texture_id_02 = self.load_texture("Textures/FNM_KingForADay.jpg")
-        self.texture_id_03 = self.load_texture("Textures/returnofthespacecowboy.jpg")
         self.texture_wall = self.load_texture("Textures/TGRAF-WALL.png")
         self.texture_floor = self.load_texture("Textures/TGRAF-GOLF.png")
         self.texture_bridge = self.load_texture("Textures/TGRAF-BRIDGE.png")
@@ -414,7 +414,6 @@ class GraphicsProgram3D:
         self.rot_step = self.rotation_speed * delta_time
         self.move_step = self.move_speed * delta_time
 
-
         if self.jumping:
             self.time_jumped += delta_time
             self.player.y += self.jump_speed * delta_time
@@ -463,11 +462,18 @@ class GraphicsProgram3D:
 
         self.model_matrix.load_identity()
         if self.won:
-            self.draw_text_2d("HAPPY", self.width/2 - 600, self.height/2 + 200, 400, self.rgb.update())
+            self.draw_text_2d(
+                "HAPPY",
+                self.width / 2 - 600,
+                self.height / 2 + 200,
+                400,
+                self.rgb.update(),
+            )
         if self.won == False:
             self.draw_scene()
 
         pygame.display.flip()
+
     def draw_text_2d(self, text, x, y, size=36, color=(255, 255, 255)):
         glMatrixMode(GL_PROJECTION)
         glPushMatrix()
@@ -514,7 +520,15 @@ class GraphicsProgram3D:
         player_half_height = 3.0
 
         triforce_rad = 3
-        if (self.triforce_loc.x - triforce_rad < self.player.x < self.triforce_loc.x + triforce_rad) and (self.triforce_loc.z - triforce_rad < self.player.z < self.triforce_loc.z + triforce_rad):
+        if (
+            self.triforce_loc.x - triforce_rad
+            < self.player.x
+            < self.triforce_loc.x + triforce_rad
+        ) and (
+            self.triforce_loc.z - triforce_rad
+            < self.player.z
+            < self.triforce_loc.z + triforce_rad
+        ):
             self.won = True
             self.touching_lava = True
 
